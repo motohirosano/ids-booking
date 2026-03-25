@@ -987,26 +987,37 @@
             
             console.log('予約データ:', bookingData);
             
-            // Google Apps Scriptに送信
-            fetch('https://script.google.com/macros/s/AKfycbw7-SYme1bLDW9qEIB0iwn_dJbBjWVc62NGZFouIHP6rwDL6JRwsJexS95m8nm13HpN/exec', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bookingData),
-                redirect: 'follow'
-            })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(result) {
-                console.log('送信結果:', result);
-                
-                if (result.success === false) {
-                    // エラーの場合
-                    alert(result.error || '予約の送信に失敗しました。');
-                    return;
-                }
+            // フォームを使用してPOST送信
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'https://script.google.com/macros/s/AKfycbw7-SYme1bLDW9qEIB0iwn_dJbBjWVc62NGZFouIHP6rwDL6JRwsJexS95m8nm13HpN/exec';
+            form.target = 'hidden_iframe';
+            
+            // データをフォームフィールドとして追加
+            for (const key in bookingData) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = bookingData[key];
+                form.appendChild(input);
+            }
+            
+            // 隠しiframeを作成
+            let iframe = document.getElementById('hidden_iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'hidden_iframe';
+                iframe.name = 'hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+            
+            // 2秒後に完了画面を表示
+            setTimeout(function() {
+                document.body.removeChild(form);
                 
                 // 完了画面を表示
                 document.getElementById('step4').innerHTML = '<h2>予約完了</h2>' +
@@ -1035,11 +1046,7 @@
                     '</div>' +
                     '</div>' +
                     '<button class="btn btn-secondary" onclick="resetForm()" style="width: 100%;">新しい予約を作成</button>';
-            })
-            .catch(function(error) {
-                console.error('送信エラー:', error);
-                alert('予約の送信に失敗しました。\n\nお手数ですが、お電話（080-8285-2342）でご連絡ください。');
-            });
+            }, 2000);
         }
         
         // ログイン関連
