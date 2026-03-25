@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDS予約システム - Inohana Dance Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        body.member-mode {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .logo {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .logo h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #000;
+            letter-spacing: 4px;
+            font-family: 'Arial Black', sans-serif;
+        }
+        
+        .logo .subtitle {
+            font-size: 0.9rem;
+            color: #000;
+            margin-top: 5px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        .member-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+            display: none;
+        }
+        
+        .member-badge.show {
+            display: block;
+        }
+        
+        .tagline {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.95);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
+        }
+        
+        .progress-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+        
+        .progress-step {
+            width: 50px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step.active {
+            background: white;
+        }
+        
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle-text {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+        
+        .studio-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .studio-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .studio-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .studio-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            border-width: 3px;
+        }
+        
+        body.member-mode .studio-card.selected {
+            border-color: #f093fb;
+            background: rgba(240, 147, 251, 0.05);
+        }
+        
+        .studio-emoji {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .studio-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .studio-size {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+        
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        
+        .feature-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        
+        body.member-mode .feature-dot {
+            background: #f093fb;
+        }
+        
+        .btn {
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+        }
+        
+        body.member-mode .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: #edf2f7;
+            color: #2d3748;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s ease;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+        }
+        
+        .form-input:focus {
+            border-color: #667eea;
+        }
+        
+        body.member-mode .form-input:focus {
+            border-color: #f093fb;
+        }
+        
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .time-slot {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .time-slot:hover {
+            transform: scale(1.05);
+        }
+        
+        .time-slot.selected {
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        body.member-mode .time-slot.selected {
+            border-color: #f093fb;
+            background: rgba(240, 147, 251, 0.1);
+            color: #f093fb;
+        }
+        
+        .info-box {
+            padding: 20px;
+            background: #fff7e6;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: start;
+        }
+        
+        .price-display {
+            padding: 25px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+        }
+        
+        body.member-mode .price-display {
+            background: rgba(240, 147, 251, 0.1);
+            border-color: rgba(240, 147, 251, 0.3);
+        }
+        
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .price-label {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .price-value {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #667eea;
+        }
+        
+        body.member-mode .price-value {
+            color: #f093fb;
+        }
+        
+        .summary-table {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .summary-label {
+            color: #718096;
+        }
+        
+        .summary-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .summary-total {
+            padding-top: 12px;
+            border-top: 2px solid #e2e8f0;
+            margin-top: 8px;
+        }
+        
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+        
+        .footer a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: underline;
+        }
+        
+        .login-btn {
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            font-family: 'Zen Kaku Gothic New', sans-serif;
+        }
+        
+        .login-btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .modal-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 30px;
+            color: white;
+        }
+        
+        .usage-type-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 30px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .usage-type-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .usage-type-card.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            border-width: 3px;
+        }
+        
+        body.member-mode .usage-type-card.selected {
+            border-color: #f093fb;
+            background: rgba(240, 147, 251, 0.05);
+        }
+        
+        .usage-type-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .checkbox-group {
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .required {
+            color: #e53e3e;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .step-content {
+            display: none;
+        }
+        
+        .step-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <div class="logo">
+                <h1>IDS</h1>
+                <div class="subtitle">Inohana Dance Studio</div>
+                <div class="member-badge" id="memberBadge">🔒 メンバー</div>
+            </div>
+            <p class="tagline">24時間レンタルスタジオ予約システム</p>
+        </div>
+
+        <!-- プログレスバー -->
+        <div class="progress-bar" id="progressBar"></div>
+
+        <!-- メインカード -->
+        <div class="card">
+            <!-- Step 1: スタジオ選択 -->
+            <div id="step1" class="step-content active">
+                <h2>スタジオを選択</h2>
+                <p class="subtitle-text">ご利用になるスタジオをお選びください</p>
+                
+                <div class="studio-grid">
+                    <div class="studio-card" id="studioA" onclick="selectStudio('A')">
+                        <div class="studio-emoji">🎵</div>
+                        <div class="studio-name">A Studio</div>
+                        <div class="studio-size">35㎡</div>
+                        <div class="feature-list">
+                            <div class="feature-item"><div class="feature-dot"></div>大鏡完備</div>
+                            <div class="feature-item"><div class="feature-dot"></div>音響設備</div>
+                            <div class="feature-item"><div class="feature-dot"></div>レンタル＆シェア可</div>
+                        </div>
+                    </div>
+                    
+                    <div class="studio-card" id="studioB" onclick="selectStudio('B')">
+                        <div class="studio-emoji">🎶</div>
+                        <div class="studio-name">B Studio</div>
+                        <div class="studio-size">50㎡</div>
+                        <div class="feature-list">
+                            <div class="feature-item"><div class="feature-dot"></div>大鏡完備</div>
+                            <div class="feature-item"><div class="feature-dot"></div>音響設備</div>
+                            <div class="feature-item"><div class="feature-dot"></div>レンタル専用</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="nextStep()">次へ →</button>
+            </div>
+
+            <!-- Step 2: 利用タイプ選択 -->
+            <div id="step2" class="step-content">
+                <h2>利用タイプを選択</h2>
+                <p class="subtitle-text"><span id="selectedStudioName"></span> Studioの利用方法をお選びください</p>
+                
+                <div class="usage-type-card" id="rentalCard" onclick="selectUsageType('rental')">
+                    <h3>レンタル（貸切）</h3>
+                    <p style="color: #718096; margin-top: 10px;">スタジオを貸切でご利用いただけます。グループレッスンや撮影などに最適です。</p>
+                </div>
+                
+                <div class="usage-type-card" id="personalCard" onclick="selectUsageType('personal')">
+                    <h3>個人利用（シェア）</h3>
+                    <p style="color: #718096; margin-top: 10px;">他の利用者とスタジオをシェアして、お得にご利用いただけます。（最大5名まで同時利用可能）</p>
+                    <p style="color: #f093fb; font-size: 0.85rem; margin-top: 10px; font-weight: 600;" id="memberOnlyText" class="hidden">※メンバー専用メニューです</p>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="prevStep()">戻る</button>
+                    <button class="btn btn-primary" style="flex: 2;" onclick="nextStep()">次へ →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: 日時選択 -->
+            <div id="step3" class="step-content">
+                <h2>日時を選択</h2>
+                <p class="subtitle-text">ご利用日時をお選びください</p>
+                
+                <div class="form-group">
+                    <label class="form-label">📅 予約日</label>
+                    <input type="date" class="form-input" id="selectedDate" onchange="updatePrice()">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">🕐 開始時刻</label>
+                    <div class="time-grid" id="timeGrid"></div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="isNightTime" onchange="toggleNightTime()" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span style="font-weight: 600; color: #2d3748;">深夜利用（6時間固定料金）</span>
+                    </label>
+                    <p style="font-size: 0.9rem; color: #718096; margin-top: 10px; margin-left: 30px;">
+                        深夜時間帯（0:00-6:00）をお得な固定料金でご利用いただけます
+                    </p>
+                </div>
+                
+                <div class="form-group" id="durationGroup">
+                    <label class="form-label">利用時間: <span id="durationDisplay">2</span>時間</label>
+                    <input type="range" min="1" max="12" value="2" style="width: 100%;" id="durationSlider" oninput="updateDuration()">
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem; color: #718096;">
+                        <span>1時間</span>
+                        <span>12時間</span>
+                    </div>
+                </div>
+                
+                <div class="price-display">
+                    <div class="price-row">
+                        <span class="price-label">料金</span>
+                        <span class="price-value" id="priceDisplay">¥0</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="prevStep()">戻る</button>
+                    <button class="btn btn-primary" style="flex: 2;" onclick="nextStep()">次へ →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: 予約者情報 -->
+            <div id="step4" class="step-content">
+                <h2>予約者情報の入力</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">お名前 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="customerName" placeholder="山田太郎">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">メールアドレス <span class="required">*</span></label>
+                    <input type="email" class="form-input" id="customerEmail" placeholder="example@gmail.com">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">電話番号 <span class="required">*</span></label>
+                    <input type="tel" class="form-input" id="customerPhone" placeholder="090-1234-5678">
+                </div>
+                
+                <div style="background: #f7fafc; padding: 25px; border-radius: 16px; margin-bottom: 30px;">
+                    <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; color: #2d3748;">予約内容の確認</h3>
+                    
+                    <div class="summary-table">
+                        <div class="summary-row">
+                            <span class="summary-label">スタジオ:</span>
+                            <span class="summary-value" id="summaryStudio"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">利用タイプ:</span>
+                            <span class="summary-value" id="summaryUsageType"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">区分:</span>
+                            <span class="summary-value" id="summaryUserType"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">予約日:</span>
+                            <span class="summary-value" id="summaryDate"></span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">時間:</span>
+                            <span class="summary-value" id="summaryTime"></span>
+                        </div>
+                        <div class="summary-row summary-total">
+                            <span style="font-size: 1.2rem; font-weight: 700; color: #2d3748;">合計料金:</span>
+                            <span style="font-size: 1.5rem; font-weight: 700;" id="summaryPrice" class="price-value"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <span style="font-size: 24px;">ℹ️</span>
+                    <div style="font-size: 0.95rem; color: #ad6800; line-height: 1.6;">
+                        内容を確認して「予約確定」ボタンをクリックしてください。<br/>
+                        <strong>予約内容は自動的に送信され、スプレッドシートに記録されます。</strong>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="prevStep()">戻る</button>
+                    <button class="btn btn-primary" style="flex: 2;" onclick="submitBooking()">✅ 予約確定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="footer">
+            <p>お問い合わせ: 080-8285-2342</p>
+            <p>メール: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0b626564636a656a6f6a65686e787f7e6f62644b6c666a626725686466">[email&#160;protected]</a></p>
+            <p>公式サイト: <a href="https://sites.google.com/view/inohanadancestudio" target="_blank">inohanadancestudio</a></p>
+            <p>営業時間: 24時間営業</p>
+            
+            <button class="login-btn" id="loginBtn" onclick="showLogin()">🔒 メンバーログイン</button>
+            <button class="login-btn hidden" id="logoutBtn" onclick="logout()">ログアウト</button>
+        </div>
+    </div>
+
+    <!-- ログインモーダル -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-icon">🔒</div>
+            <h2>メンバーログイン</h2>
+            <p class="subtitle-text">メンバー専用パスワードを入力してください</p>
+            
+            <input type="password" class="form-input" id="loginPassword" placeholder="パスワード" style="margin-bottom: 20px;" onkeypress="if(event.key === 'Enter') login()">
+            
+            <div class="btn-group">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeLogin()">キャンセル</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="login()">ログイン</button>
+            </div>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // グローバル変数
+        let currentStep = 1;
+        let userType = 'general';
+        let selectedStudio = null;
+        let selectedUsageType = null;
+        let selectedTime = null;
+        let duration = 2;
+        let isNightTime = false;
+        
+        const MEMBER_PASSWORD = 'ids';
+        
+        const GOOGLE_FORM_CONFIG = {
+            FORM_ID: '1ejHmu_36-tad80ZX1TtWX1N7L5zmq9xldKT-cDYw-EE',
+            ENTRIES: {
+                name: 'entry.1098143570',
+                email: 'entry.1901206634',
+                phone: 'entry.332130031',
+                studio: 'entry.1642430743',
+                usageType: 'entry.1219926402',
+                userType: 'entry.594437489',
+                date: 'entry.261770179',
+                time: 'entry.1939595492',
+                duration: 'entry.1875684114',
+                price: 'entry.1608891221',
+            }
+        };
+        
+        // 初期化
+        function init() {
+            generateTimeSlots();
+            updateProgress();
+            
+            // 今日の日付を最小値に設定
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('selectedDate').setAttribute('min', today);
+        }
+        
+        // 時間スロット生成
+        function generateTimeSlots() {
+            const timeGrid = document.getElementById('timeGrid');
+            const times = [];
+            for (let h = 0; h < 24; h++) {
+                times.push(String(h).padStart(2, '0') + ':00');
+                times.push(String(h).padStart(2, '0') + ':30');
+            }
+            
+            timeGrid.innerHTML = times.map(time => 
+                '<div class="time-slot" onclick="selectTime(\'' + time + '\')">' + time + '</div>'
+            ).join('');
+        }
+        
+        // プログレスバー更新
+        function updateProgress() {
+            const progressBar = document.getElementById('progressBar');
+            const steps = userType === 'general' ? [1, 3, 4] : [1, 2, 3, 4];
+            
+            progressBar.innerHTML = steps.map(s => 
+                '<div class="progress-step ' + (currentStep >= s ? 'active' : '') + '"></div>'
+            ).join('');
+        }
+        
+        // スタジオ選択
+        function selectStudio(studio) {
+            selectedStudio = studio;
+            document.querySelectorAll('.studio-card').forEach(function(card) {
+                card.classList.remove('selected');
+            });
+            document.getElementById('studio' + studio).classList.add('selected');
+        }
+        
+        // 利用タイプ選択
+        function selectUsageType(type) {
+            if (type === 'personal' && userType === 'general') {
+                alert('個人利用はメンバー専用です。メンバーログインしてください。');
+                return;
+            }
+            selectedUsageType = type;
+            document.querySelectorAll('.usage-type-card').forEach(function(card) {
+                card.classList.remove('selected');
+            });
+            document.getElementById(type === 'rental' ? 'rentalCard' : 'personalCard').classList.add('selected');
+        }
+        
+        // 時刻選択
+        function selectTime(time) {
+            selectedTime = time;
+            document.querySelectorAll('.time-slot').forEach(function(slot) {
+                slot.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            updatePrice();
+        }
+        
+        // 深夜モード切替
+        function toggleNightTime() {
+            isNightTime = document.getElementById('isNightTime').checked;
+            const durationGroup = document.getElementById('durationGroup');
+            
+            if (isNightTime) {
+                duration = 6;
+                durationGroup.style.display = 'none';
+            } else {
+                duration = 2;
+                document.getElementById('durationSlider').value = 2;
+                document.getElementById('durationDisplay').textContent = 2;
+                durationGroup.style.display = 'block';
+            }
+            
+            updatePrice();
+        }
+        
+        // 利用時間更新
+        function updateDuration() {
+            duration = parseInt(document.getElementById('durationSlider').value);
+            document.getElementById('durationDisplay').textContent = duration;
+            updatePrice();
+        }
+        
+        // 料金計算
+        function calculatePrice() {
+            if (!selectedStudio || !selectedUsageType) return 0;
+            
+            if (isNightTime) {
+                if (selectedStudio === 'A') {
+                    return userType === 'member' ? 3000 : 5000;
+                } else {
+                    return userType === 'member' ? 4000 : 6000;
+                }
+            }
+            
+            if (selectedUsageType === 'personal') {
+                const basePrice = 500;
+                const hourlyPrice = 250;
+                if (duration <= 2) return basePrice;
+                return basePrice + (duration - 2) * hourlyPrice;
+            } else {
+                let basePrice, hourlyPrice;
+                
+                if (selectedStudio === 'A') {
+                    basePrice = userType === 'member' ? 2000 : 3000;
+                    hourlyPrice = userType === 'member' ? 1000 : 1500;
+                } else {
+                    basePrice = userType === 'member' ? 3000 : 4000;
+                    hourlyPrice = userType === 'member' ? 1500 : 2000;
+                }
+                
+                if (duration <= 2) return basePrice;
+                return basePrice + (duration - 2) * hourlyPrice;
+            }
+        }
+        
+        // 料金表示更新
+        function updatePrice() {
+            const price = calculatePrice();
+            document.getElementById('priceDisplay').textContent = '¥' + price.toLocaleString();
+        }
+        
+        // 次のステップ
+        function nextStep() {
+            if (currentStep === 1 && !selectedStudio) {
+                alert('スタジオを選択してください');
+                return;
+            }
+            
+            // 一般ユーザーはStep2をスキップ
+            if (currentStep === 1 && userType === 'general') {
+                selectedUsageType = 'rental';
+                currentStep = 3;
+            } else if (currentStep === 2 && !selectedUsageType) {
+                alert('利用タイプを選択してください');
+                return;
+            } else if (currentStep === 3) {
+                const date = document.getElementById('selectedDate').value;
+                if (!date || !selectedTime) {
+                    alert('日時を選択してください');
+                    return;
+                }
+                
+                // Step4のサマリーを更新
+                updateSummary();
+                currentStep = 4;
+            } else {
+                currentStep++;
+            }
+            
+            showStep(currentStep);
+        }
+        
+        // 前のステップ
+        function prevStep() {
+            // 一般ユーザーがStep3から戻る場合、Step1へ
+            if (currentStep === 3 && userType === 'general') {
+                currentStep = 1;
+            } else {
+                currentStep--;
+            }
+            showStep(currentStep);
+        }
+        
+        // ステップ表示
+        function showStep(step) {
+            document.querySelectorAll('.step-content').forEach(function(content) {
+                content.classList.remove('active');
+            });
+            document.getElementById('step' + step).classList.add('active');
+            
+            if (step === 2) {
+                document.getElementById('selectedStudioName').textContent = selectedStudio;
+                updateUsageTypeOptions();
+            }
+            
+            updateProgress();
+        }
+        
+        // 利用タイプオプション更新
+        function updateUsageTypeOptions() {
+            const personalCard = document.getElementById('personalCard');
+            const memberOnlyText = document.getElementById('memberOnlyText');
+            
+            if (selectedStudio === 'A') {
+                personalCard.style.display = 'block';
+                if (userType === 'general') {
+                    personalCard.classList.add('disabled');
+                    memberOnlyText.classList.remove('hidden');
+                } else {
+                    personalCard.classList.remove('disabled');
+                    memberOnlyText.classList.add('hidden');
+                }
+            } else {
+                personalCard.style.display = 'none';
+            }
+        }
+        
+        // サマリー更新
+        function updateSummary() {
+            const price = calculatePrice();
+            const date = document.getElementById('selectedDate').value;
+            
+            document.getElementById('summaryStudio').textContent = selectedStudio + ' Studio';
+            document.getElementById('summaryUsageType').textContent = selectedUsageType === 'rental' ? 'レンタル（貸切）' : '個人利用（シェア）';
+            document.getElementById('summaryUserType').textContent = userType === 'member' ? 'メンバー' : '一般';
+            document.getElementById('summaryDate').textContent = date;
+            document.getElementById('summaryTime').textContent = selectedTime + ' 〜 (' + duration + '時間' + (isNightTime ? '・深夜' : '') + ')';
+            document.getElementById('summaryPrice').textContent = '¥' + price.toLocaleString();
+        }
+        
+        // 予約送信
+        function submitBooking() {
+            const name = document.getElementById('customerName').value;
+            const email = document.getElementById('customerEmail').value;
+            const phone = document.getElementById('customerPhone').value;
+            const date = document.getElementById('selectedDate').value;
+            
+            if (!name || !email || !phone) {
+                alert('お名前、メールアドレス、電話番号を入力してください');
+                return;
+            }
+            
+            const price = calculatePrice();
+            
+            // 予約データを準備
+            const bookingData = {
+                name: name,
+                email: email,
+                phone: phone,
+                studio: selectedStudio + ' Studio',
+                usageType: selectedUsageType === 'rental' ? 'レンタル（貸切）' : '個人利用（シェア）',
+                userType: userType === 'member' ? 'メンバー' : '一般',
+                date: date,
+                time: selectedTime,
+                duration: duration + '時間' + (isNightTime ? '（深夜）' : ''),
+                price: '¥' + price.toLocaleString()
+            };
+            
+            console.log('予約データ:', bookingData);
+            
+            // Google Apps Scriptに送信
+            fetch('https://script.google.com/macros/s/AKfycbzSvoXFaIy-NPxsBjJSO56msIXwIHz24d9p7Dtm8CuuQX_KF6dBJIeT9-HtD4RXFRsB/exec', {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData)
+            })
+            .then(function(response) {
+                // no-corsモードでは詳細なレスポンスが取得できないため、
+                // 成功とみなして完了画面を表示
+                console.log('予約を送信しました');
+                
+                // 完了画面を表示
+                document.getElementById('step4').innerHTML = '<h2>予約完了</h2>' +
+                    '<div style="background: #f7fafc; padding: 30px; border-radius: 16px; margin-bottom: 30px; text-align: center;">' +
+                    '<div style="font-size: 3rem; margin-bottom: 20px;">✅</div>' +
+                    '<h3 style="font-size: 1.5rem; font-weight: 700; color: #2d3748; margin-bottom: 15px;">予約を受け付けました</h3>' +
+                    '<p style="color: #718096; margin-bottom: 20px;">ご予約ありがとうございます。</p>' +
+                    '<div style="background: white; padding: 20px; border-radius: 12px; text-align: left; margin-bottom: 20px;">' +
+                    '<div style="margin-bottom: 10px;"><strong>スタジオ:</strong> ' + selectedStudio + ' Studio</div>' +
+                    '<div style="margin-bottom: 10px;"><strong>利用タイプ:</strong> ' + (selectedUsageType === 'rental' ? 'レンタル（貸切）' : '個人利用（シェア）') + '</div>' +
+                    '<div style="margin-bottom: 10px;"><strong>区分:</strong> ' + (userType === 'member' ? 'メンバー' : '一般') + '</div>' +
+                    '<div style="margin-bottom: 10px;"><strong>予約日:</strong> ' + date + '</div>' +
+                    '<div style="margin-bottom: 10px;"><strong>時間:</strong> ' + selectedTime + ' 〜 (' + duration + '時間' + (isNightTime ? '・深夜' : '') + ')</div>' +
+                    '<div style="margin-bottom: 10px;"><strong>料金:</strong> ¥' + price.toLocaleString() + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div style="background: #e6f7ff; padding: 20px; border-radius: 12px; margin-bottom: 30px;">' +
+                    '<div style="display: flex; gap: 15px; align-items: start;">' +
+                    '<span style="font-size: 24px;">📧</span>' +
+                    '<div style="font-size: 0.95rem; color: #0050b3; line-height: 1.6;">' +
+                    '<strong>予約確認メールを送信しました</strong><br/>' +
+                    '入力されたメールアドレス（' + email + '）に予約内容を送信しました。<br/>' +
+                    '確認後、Paysys決済リンクをメールでお送りいたします。<br/><br/>' +
+                    '<strong>お問い合わせ:</strong> 080-8285-2342' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<button class="btn btn-secondary" onclick="resetForm()" style="width: 100%;">新しい予約を作成</button>';
+            })
+            .catch(function(error) {
+                console.error('送信エラー:', error);
+                alert('予約の送信に失敗しました。\n\nお手数ですが、お電話（080-8285-2342）でご連絡ください。');
+            });
+        }
+        
+        // ログイン関連
+        function showLogin() {
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('loginPassword').focus();
+        }
+        
+        function closeLogin() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('loginPassword').value = '';
+        }
+        
+        function login() {
+            const password = document.getElementById('loginPassword').value;
+            
+            if (password === MEMBER_PASSWORD) {
+                userType = 'member';
+                document.body.classList.add('member-mode');
+                document.getElementById('memberBadge').classList.add('show');
+                document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                closeLogin();
+                alert('メンバーログインしました！\nお得な料金でご利用いただけます。');
+            } else {
+                alert('パスワードが正しくありません');
+            }
+        }
+        
+        function logout() {
+            userType = 'general';
+            document.body.classList.remove('member-mode');
+            document.getElementById('memberBadge').classList.remove('show');
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
+            currentStep = 1;
+            selectedStudio = null;
+            selectUsageType = null;
+            showStep(1);
+            alert('ログアウトしました');
+        }
+        
+        // フォームリセット
+        function resetForm() {
+            location.reload();
+        }
+        
+        // 初期化実行
+        window.onload = function() {
+            init();
+        };
+    </script>
+</body>
+</html>
