@@ -990,16 +990,23 @@
             // Google Apps Scriptに送信
             fetch('https://script.google.com/macros/s/AKfycbw7-SYme1bLDW9qEIB0iwn_dJbBjWVc62NGZFouIHP6rwDL6JRwsJexS95m8nm13HpN/exec', {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(bookingData)
+                body: JSON.stringify(bookingData),
+                redirect: 'follow'
             })
             .then(function(response) {
-                // no-corsモードでは詳細なレスポンスが取得できないため、
-                // 成功とみなして完了画面を表示
-                console.log('予約を送信しました');
+                return response.json();
+            })
+            .then(function(result) {
+                console.log('送信結果:', result);
+                
+                if (result.success === false) {
+                    // エラーの場合
+                    alert(result.error || '予約の送信に失敗しました。');
+                    return;
+                }
                 
                 // 完了画面を表示
                 document.getElementById('step4').innerHTML = '<h2>予約完了</h2>' +
