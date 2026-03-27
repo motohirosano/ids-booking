@@ -370,10 +370,15 @@
             fetch(API_URL + '?action=list&date=' + date + '&studio=' + studio)
                 .then(res => res.json())
                 .then(data => {
+                    console.log('取得した予約データ:', data.bookings);
+                    
                     bookings = (data.bookings || []).map(b => {
                         // 時間を30分スロットに変換
-                        const startSlot = b.startHour * 2; // 10:00 → 20, 10:30 → 21
-                        const durationSlots = b.duration * 2; // 2時間 → 4スロット
+                        // startHour が 10.5 の場合 → slot 21 (10時30分)
+                        const startSlot = Math.floor(b.startHour * 2);
+                        const durationSlots = Math.ceil(b.duration * 2);
+                        
+                        console.log('予約変換:', b.title, 'startHour=' + b.startHour, 'startSlot=' + startSlot, 'duration=' + b.duration, 'durationSlots=' + durationSlots);
                         
                         return {
                             ...b,
@@ -381,6 +386,8 @@
                             durationSlots: durationSlots
                         };
                     });
+                    
+                    console.log('変換後の予約データ:', bookings);
                     renderCalendar();
                 })
                 .catch(err => {
@@ -407,26 +414,31 @@
             studios.forEach(studio => {
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
                 
-                for (let slot = 0; slot < 48; slot++) {
+                let slot = 0;
+                while (slot < 48) {
                     const booking = findBookingAtSlot(studio, slot);
                     
                     if (booking && booking.isStart) {
-                        const span = booking.durationSlots;
+                        const span = booking.durationSlots || 1; // durationSlotsがない場合は1
                         
                         // 利用タイプを判定
-                        let displayText = '';
-                        if (booking.title.includes('個人利用') || (booking.description && booking.description.includes('個人利用'))) {
+                        let displayText = 'レンタル'; // デフォルト
+                        if (booking.title && booking.title.includes('個人利用')) {
                             displayText = '個人利用';
-                        } else {
-                            displayText = 'レンタル';
+                        } else if (booking.description && booking.description.includes('個人利用')) {
+                            displayText = '個人利用';
                         }
                         
                         html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
                             '<div class="booking-bar">' + displayText + '</div>' +
                             '</div>';
-                        slot += span - 1;
+                        slot += span;
                     } else if (!booking) {
                         html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
+                        slot++;
+                    } else {
+                        // booking exists but not isStart (既に他の予約でカバーされている)
+                        slot++;
                     }
                 }
             });
