@@ -1015,11 +1015,27 @@
             document.body.appendChild(form);
             form.submit();
             
-            // 2秒後に完了画面を表示
-            setTimeout(function() {
-                document.body.removeChild(form);
-                
-                // 完了画面を表示
+            // 隠しiframeのロード完了を監視
+            iframe.onload = function() {
+                setTimeout(function() {
+                    // iframeのレスポンスを確認（可能な範囲で）
+                    try {
+                        const iframeContent = iframe.contentWindow.document.body.textContent;
+                        
+                        if (iframeContent && iframeContent.includes('DOUBLE_BOOKING')) {
+                            // ダブルブッキングエラー
+                            alert('⚠️ この日時は既に予約が入っています。\n\n別の日時をお選びください。');
+                            document.body.removeChild(form);
+                            return;
+                        }
+                    } catch (e) {
+                        // クロスオリジンの場合はアクセスできないため、成功とみなす
+                        Logger.log('iframe確認エラー（通常動作）: ' + e);
+                    }
+                    
+                    document.body.removeChild(form);
+                    
+                    // 完了画面を表示
                 document.getElementById('step4').innerHTML = '<h2>予約完了</h2>' +
                     '<div style="background: #f7fafc; padding: 30px; border-radius: 16px; margin-bottom: 30px; text-align: center;">' +
                     '<div style="font-size: 3rem; margin-bottom: 20px;">✅</div>' +
@@ -1046,7 +1062,8 @@
                     '</div>' +
                     '</div>' +
                     '<button class="btn btn-secondary" onclick="resetForm()" style="width: 100%;">新しい予約を作成</button>';
-            }, 2000);
+                }, 3000); // 3秒待機
+            };
         }
         
         // ログイン関連
