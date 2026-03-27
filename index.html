@@ -421,21 +421,32 @@
                     const booking = findBookingAtSlot(studio, slot);
                     
                     if (booking && booking.isStart) {
-                        const span = Math.min(booking.durationSlots || 1, 48 - slot); // 48を超えないように
+                        const span = Math.min(booking.durationSlots || 1, 48 - slot);
                         
-                        // 利用タイプを判定（タイトルまたは説明から）
-                        let displayText = 'レンタル'; // デフォルト
+                        // 利用タイプを判定
+                        let displayText = 'レンタル';
+                        let isPersonal = false;
                         const fullText = (booking.title || '') + ' ' + (booking.description || '');
                         
                         if (fullText.includes('個人利用') || fullText.includes('シェア')) {
                             displayText = '個人利用';
+                            isPersonal = true;
                         } else if (fullText.includes('レンタル') || fullText.includes('貸切')) {
                             displayText = 'レンタル';
                         }
                         
-                        html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
-                            '<div class="booking-bar">' + displayText + '</div>' +
-                            '</div>';
+                        // 個人利用の場合はクリック可能（A Studioかつメンバーの場合）
+                        if (isPersonal && studio === 'A' && userType === 'member') {
+                            html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
+                                '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">' + displayText + '</div>' +
+                                '</div>';
+                        } else {
+                            // レンタルまたは個人利用満員の場合はクリック不可
+                            html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
+                                '<div class="booking-bar">' + displayText + '</div>' +
+                                '</div>';
+                        }
+                        
                         cellCount += span;
                         slot += span;
                     } else if (!booking) {
@@ -697,10 +708,25 @@
             const password = document.getElementById('loginPassword').value;
             if (password === MEMBER_PASSWORD) {
                 userType = 'member';
-                alert('メンバーログインしました！');
+                document.getElementById('loginBtn').textContent = '🔓 ログアウト';
+                document.getElementById('loginBtn').onclick = logout;
                 closeLogin();
+                alert('メンバーログインしました！\nお得な料金でご利用いただけます。');
+                // カレンダーを再描画して個人利用をクリック可能に
+                renderCalendar();
             } else {
                 alert('パスワードが正しくありません');
+            }
+        }
+        
+        function logout() {
+            if (confirm('ログアウトしますか？')) {
+                userType = 'general';
+                document.getElementById('loginBtn').textContent = '🔒 メンバーログイン';
+                document.getElementById('loginBtn').onclick = showLogin;
+                alert('ログアウトしました');
+                // カレンダーを再描画
+                renderCalendar();
             }
         }
     </script>
