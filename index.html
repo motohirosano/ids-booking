@@ -414,32 +414,44 @@
             studios.forEach(studio => {
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
                 
+                let cellCount = 0;
                 let slot = 0;
+                
                 while (slot < 48) {
                     const booking = findBookingAtSlot(studio, slot);
                     
                     if (booking && booking.isStart) {
-                        const span = booking.durationSlots || 1; // durationSlotsがない場合は1
+                        const span = Math.min(booking.durationSlots || 1, 48 - slot); // 48を超えないように
                         
-                        // 利用タイプを判定
+                        // 利用タイプを判定（タイトルまたは説明から）
                         let displayText = 'レンタル'; // デフォルト
-                        if (booking.title && booking.title.includes('個人利用')) {
+                        const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                        
+                        if (fullText.includes('個人利用') || fullText.includes('シェア')) {
                             displayText = '個人利用';
-                        } else if (booking.description && booking.description.includes('個人利用')) {
-                            displayText = '個人利用';
+                        } else if (fullText.includes('レンタル') || fullText.includes('貸切')) {
+                            displayText = 'レンタル';
                         }
                         
                         html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
                             '<div class="booking-bar">' + displayText + '</div>' +
                             '</div>';
+                        cellCount += span;
                         slot += span;
                     } else if (!booking) {
                         html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
+                        cellCount++;
                         slot++;
                     } else {
-                        // booking exists but not isStart (既に他の予約でカバーされている)
+                        // booking exists but not isStart
                         slot++;
                     }
+                }
+                
+                // 不足分のセルを追加（正確に48セルにする）
+                while (cellCount < 48) {
+                    html += '<div class="time-cell"></div>';
+                    cellCount++;
                 }
             });
             
