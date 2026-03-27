@@ -305,7 +305,7 @@
                 <label>利用タイプ</label>
                 <select id="usageType" onchange="calculatePrice()">
                     <option value="rental">レンタル（貸切）</option>
-                    <option value="personal">個人利用（シェア）</option>
+                    <option value="personal" id="personalOption">個人利用（シェア）- メンバー専用</option>
                 </select>
             </div>
             
@@ -440,6 +440,18 @@
             document.getElementById('modalDateTime').textContent = 
                 selectedBooking.date + ' ' + String(hour).padStart(2, '0') + ':00〜';
             
+            // 利用タイプの制御
+            const usageTypeSelect = document.getElementById('usageType');
+            const personalOption = document.getElementById('personalOption');
+            
+            // B Studioまたは非メンバーの場合は個人利用を非表示
+            if (studio === 'B' || userType === 'general') {
+                personalOption.style.display = 'none';
+                usageTypeSelect.value = 'rental';
+            } else {
+                personalOption.style.display = 'block';
+            }
+            
             calculatePrice();
             document.getElementById('bookingModal').classList.add('active');
         }
@@ -457,6 +469,14 @@
             const isMember = userType === 'member';
             
             let price = 0;
+            
+            // B Studioまたは非メンバーは個人利用不可
+            if (usageType === 'personal' && (studio === 'B' || !isMember)) {
+                document.getElementById('usageType').value = 'rental';
+                alert('個人利用はA Studioのメンバー専用です');
+                calculatePrice();
+                return;
+            }
             
             if (usageType === 'personal' && studio === 'A') {
                 price = 500;
