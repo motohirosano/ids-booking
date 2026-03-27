@@ -415,47 +415,44 @@
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
                 
                 let cellCount = 0;
-                let slot = 0;
                 
-                while (slot < 48) {
+                for (let slot = 0; slot < 48; slot++) {
                     const booking = findBookingAtSlot(studio, slot);
                     
-                    if (booking && booking.isStart) {
-                        const span = Math.min(booking.durationSlots || 1, 48 - slot);
-                        
-                        // 利用タイプを判定
-                        let displayText = 'レンタル';
-                        let isPersonal = false;
-                        const fullText = (booking.title || '') + ' ' + (booking.description || '');
-                        
-                        if (fullText.includes('個人利用') || fullText.includes('シェア')) {
-                            displayText = '個人利用';
-                            isPersonal = true;
-                        } else if (fullText.includes('レンタル') || fullText.includes('貸切')) {
-                            displayText = 'レンタル';
+                    // このスロットが予約で占有されている場合
+                    if (booking) {
+                        // 予約の開始地点の場合のみ描画
+                        if (booking.isStart) {
+                            const span = Math.min(booking.durationSlots || 1, 48 - slot);
+                            
+                            // 利用タイプを判定
+                            let displayText = 'レンタル';
+                            let isPersonal = false;
+                            const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                            
+                            if (fullText.includes('個人利用') || fullText.includes('シェア')) {
+                                displayText = '個人利用';
+                                isPersonal = true;
+                            }
+                            
+                            // 個人利用でA Studioかつメンバーの場合はクリック可能
+                            if (isPersonal && studio === 'A' && userType === 'member') {
+                                html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
+                                    '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">' + displayText + '</div>' +
+                                    '</div>';
+                            } else {
+                                html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
+                                    '<div class="booking-bar">' + displayText + '</div>' +
+                                    '</div>';
+                            }
+                            
+                            cellCount += span;
                         }
-                        
-                        // 個人利用の場合はクリック可能（A Studioかつメンバーの場合）
-                        if (isPersonal && studio === 'A' && userType === 'member') {
-                            html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
-                                '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">' + displayText + '</div>' +
-                                '</div>';
-                        } else {
-                            // レンタルまたは個人利用満員の場合はクリック不可
-                            html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
-                                '<div class="booking-bar">' + displayText + '</div>' +
-                                '</div>';
-                        }
-                        
-                        cellCount += span;
-                        slot += span;
-                    } else if (!booking) {
+                        // 予約の途中のスロットはスキップ（セルを作らない）
+                    } else {
+                        // 空きスロット
                         html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
                         cellCount++;
-                        slot++;
-                    } else {
-                        // booking exists but not isStart
-                        slot++;
                     }
                 }
                 
