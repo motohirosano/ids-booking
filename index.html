@@ -408,10 +408,6 @@
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
                 
                 for (let slot = 0; slot < 48; slot++) {
-                    const hour = Math.floor(slot / 2);
-                    const minute = (slot % 2) * 30;
-                    const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
-                    
                     const booking = findBookingAtSlot(studio, slot);
                     
                     if (booking && booking.isStart) {
@@ -419,7 +415,7 @@
                         
                         // 利用タイプを判定
                         let displayText = '';
-                        if (booking.title.includes('個人利用') || booking.description.includes('個人利用')) {
+                        if (booking.title.includes('個人利用') || (booking.description && booking.description.includes('個人利用'))) {
                             displayText = '個人利用';
                         } else {
                             displayText = 'レンタル';
@@ -452,6 +448,33 @@
                 }
             }
             return null;
+        }
+        
+        // 個人利用の予約数をカウント
+        function countPersonalAtSlot(studio, slot) {
+            let count = 0;
+            for (let booking of bookings) {
+                if (booking.studio === studio && 
+                    slot >= booking.startSlot && 
+                    slot < booking.startSlot + booking.durationSlots &&
+                    (booking.title.includes('個人利用') || booking.description.includes('個人利用'))) {
+                    count++;
+                }
+            }
+            return count;
+        }
+        
+        // レンタル予約があるかチェック
+        function hasRentalAtSlot(studio, slot) {
+            for (let booking of bookings) {
+                if (booking.studio === studio && 
+                    slot >= booking.startSlot && 
+                    slot < booking.startSlot + booking.durationSlots &&
+                    (booking.title.includes('レンタル') || booking.description.includes('レンタル'))) {
+                    return true;
+                }
+            }
+            return false;
         }
         
         // 個人利用の予約数をカウント
