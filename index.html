@@ -401,8 +401,16 @@
                     
                     if (booking && booking.isStart) {
                         const span = booking.duration;
+                        let title = booking.title;
+                        
+                        // 個人利用の場合は枠数を表示
+                        if (title.includes('個人利用')) {
+                            const count = countPersonalBookings(studio, h);
+                            title = '個人利用 (' + count + '/5枠)';
+                        }
+                        
                         html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
-                            '<div class="booking-bar">' + booking.title + '</div>' +
+                            '<div class="booking-bar">' + title + '</div>' +
                             '</div>';
                         h += span - 1;
                     } else if (!booking) {
@@ -415,17 +423,41 @@
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
-        // 予約検索
-        function findBooking(studio, hour) {
+        // 個人利用の予約数をカウント
+        function countPersonalBookings(studio, hour) {
+            let count = 0;
             for (let booking of bookings) {
-                if (booking.studio === studio && hour >= booking.startHour && hour < booking.startHour + booking.duration) {
-                    return {
-                        ...booking,
-                        isStart: hour === booking.startHour
-                    };
+                if (booking.studio === studio && 
+                    hour >= booking.startHour && 
+                    hour < booking.startHour + booking.duration &&
+                    booking.title.includes('個人利用')) {
+                    count++;
                 }
             }
-            return null;
+            return count;
+        }
+        
+        // 予約検索
+        function findBooking(studio, hour) {
+            const bookingsAtTime = [];
+            
+            for (let booking of bookings) {
+                if (booking.studio === studio && hour >= booking.startHour && hour < booking.startHour + booking.duration) {
+                    bookingsAtTime.push({
+                        ...booking,
+                        isStart: hour === booking.startHour
+                    });
+                }
+            }
+            
+            if (bookingsAtTime.length === 0) return null;
+            
+            // レンタル予約がある場合は、それを優先表示
+            const rental = bookingsAtTime.find(b => b.title.includes('レンタル'));
+            if (rental) return rental;
+            
+            // 個人利用のみの場合は、最初の予約を返す
+            return bookingsAtTime[0];
         }
         
         // 予約モーダルを開く
