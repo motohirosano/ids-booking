@@ -401,6 +401,8 @@
                     const personalCount = countPersonalBookings(studio, h);
                     const hasRental = hasRentalBooking(studio, h);
                     
+                    console.log('Hour ' + h + ': booking=' + (booking ? booking.title : 'none') + ', personalCount=' + personalCount + ', hasRental=' + hasRental);
+                    
                     // レンタル予約がある場合
                     if (hasRental && booking && booking.isStart) {
                         const span = booking.duration;
@@ -418,12 +420,14 @@
                         h += span - 1;
                     }
                     // 個人利用が1〜4枠の場合（クリック可能）
-                    else if (personalCount > 0 && personalCount < 5 && booking && booking.isStart) {
-                        const span = booking.duration;
-                        html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0;" onclick="openBookingModal(\'' + studio + '\', ' + h + ')">' +
-                            '<div style="padding: 5px; font-size: 11px; color: #e65100;">個人利用 (' + personalCount + '/5枠)</div>' +
-                            '</div>';
-                        h += span - 1;
+                    else if (personalCount > 0 && personalCount < 5) {
+                        if (booking && booking.isStart) {
+                            const span = booking.duration;
+                            html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + h + ')">' +
+                                '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">個人利用 (' + personalCount + '/5枠) - クリックして追加予約</div>' +
+                                '</div>';
+                            h += span - 1;
+                        }
                     }
                     // 空き時間
                     else if (!booking) {
