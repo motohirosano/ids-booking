@@ -971,52 +971,6 @@
             
             const price = calculatePrice();
             
-            // まず空き状況をチェック
-            checkAvailabilityBeforeBooking(name, email, phone, date, price);
-        }
-        
-        // 空き状況チェック後に予約処理
-        function checkAvailabilityBeforeBooking(name, email, phone, date, price) {
-            const studioKey = selectedStudio; // "A" or "B"
-            const timeStr = selectedTime;
-            const durationStr = String(duration);
-            
-            // 空き状況チェックAPI呼び出し
-            const checkUrl = 'https://script.google.com/macros/s/AKfycbxwm4RHARiMBS-vJH9DMlLMNAWC5tvOKfxdWdk5TaxrRvfyldEtnwD1B9Ml5WiHeckM/exec' +
-                '?studio=' + encodeURIComponent(studioKey) +
-                '&date=' + encodeURIComponent(date) +
-                '&time=' + encodeURIComponent(timeStr) +
-                '&duration=' + encodeURIComponent(durationStr);
-            
-            console.log('空き状況チェック中...');
-            
-            fetch(checkUrl)
-                .then(function(response) {
-                    return response.json();
-                })
-                .then(function(result) {
-                    console.log('空き状況チェック結果:', result);
-                    
-                    if (result.available === false) {
-                        // 予約不可
-                        alert('⚠️ この日時は既に予約が入っています。\n\n別の日時をお選びください。');
-                        return;
-                    }
-                    
-                    // 空いている場合は予約を実行
-                    proceedWithBooking(name, email, phone, date, price);
-                })
-                .catch(function(error) {
-                    console.error('空き状況チェックエラー:', error);
-                    // エラーの場合でも予約を続行（安全側に倒す）
-                    if (confirm('空き状況の確認ができませんでした。\n\nそれでも予約を続けますか？')) {
-                        proceedWithBooking(name, email, phone, date, price);
-                    }
-                });
-        }
-        
-        // 予約処理を実行
-        function proceedWithBooking(name, email, phone, date, price) {
             // 予約データを準備
             const bookingData = {
                 name: name,
@@ -1076,7 +1030,7 @@
                         }
                     } catch (e) {
                         // クロスオリジンの場合はアクセスできないため、成功とみなす
-                        Logger.log('iframe確認エラー（通常動作）: ' + e);
+                        console.log('iframe確認エラー（通常動作）: ' + e);
                     }
                     
                     document.body.removeChild(form);
