@@ -154,19 +154,32 @@
                 min-width: auto;
             }
             
+            /* 全スタジオ選択時は2列グリッド */
+            .studios-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+            
+            .studios-container.single {
+                grid-template-columns: 1fr;
+            }
+            
             /* スタジオごとにセクション分け */
             .studio-section {
-                margin-bottom: 30px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             }
             
             .studio-section-header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 15px;
+                padding: 12px 8px;
                 font-weight: 600;
-                font-size: 16px;
+                font-size: 14px;
                 text-align: center;
-                border-radius: 8px 8px 0 0;
                 position: sticky;
                 top: 0;
                 z-index: 5;
@@ -174,24 +187,25 @@
             
             .time-slot-mobile {
                 display: grid;
-                grid-template-columns: 100px 1fr;
+                grid-template-columns: 60px 1fr;
                 border-bottom: 1px solid #e0e0e0;
-                min-height: 60px;
+                min-height: 50px;
                 align-items: center;
+                background: white;
             }
             
             .time-label-mobile {
                 background: #f5f5f5;
-                padding: 15px;
+                padding: 10px 5px;
                 font-weight: 600;
-                font-size: 14px;
+                font-size: 11px;
                 text-align: center;
                 border-right: 1px solid #e0e0e0;
             }
             
             .time-content-mobile {
-                padding: 10px;
-                min-height: 60px;
+                padding: 8px 5px;
+                min-height: 50px;
                 position: relative;
                 cursor: pointer;
                 transition: background 0.2s;
@@ -218,11 +232,19 @@
             .booking-label-mobile {
                 background: #ef5350;
                 color: white;
-                padding: 10px;
+                padding: 8px 5px;
                 border-radius: 4px;
                 text-align: center;
                 font-weight: 600;
-                font-size: 14px;
+                font-size: 11px;
+                line-height: 1.3;
+            }
+            
+            .booking-label-mobile small {
+                font-size: 9px;
+                opacity: 0.9;
+                display: block;
+                margin-top: 2px;
             }
             
             .booking-label-mobile.personal {
@@ -742,9 +764,10 @@
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
-        // スマホ版：縦タイムライン表示
+        // スマホ版：縦タイムライン表示（2列対応）
         function renderMobileCalendar(studios) {
-            let html = '';
+            const containerClass = studios.length === 1 ? 'studios-container single' : 'studios-container';
+            let html = '<div class="' + containerClass + '">';
             
             studios.forEach(studio => {
                 html += '<div class="studio-section">';
@@ -779,15 +802,15 @@
                         
                         if (isPersonal && studio === 'A' && userType === 'member') {
                             html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
-                            html += '<div class="booking-label-mobile personal">' + displayText + '<br><small>' + timeStr + ' - ' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '<div class="booking-label-mobile personal">' + displayText + '<br><small>〜' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
                             html += '</div>';
                         } else {
                             html += '<div class="time-content-mobile occupied">';
-                            html += '<div class="booking-label-mobile">' + displayText + '<br><small>' + timeStr + ' - ' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '<div class="booking-label-mobile">' + displayText + '<br><small>〜' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
                             html += '</div>';
                         }
                     } else if (booking && !booking.isStart) {
-                        // 予約の途中：空欄（スキップ）
+                        // 予約の途中：薄グレー
                         html += '<div class="time-content-mobile occupied" style="background: #fafafa; border-left: 3px solid #ef5350;"></div>';
                     } else {
                         // 空き時間
@@ -800,6 +823,7 @@
                 html += '</div>';
             });
             
+            html += '</div>';
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
