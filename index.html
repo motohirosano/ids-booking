@@ -1017,39 +1017,57 @@
                 price: document.getElementById('priceDisplay').textContent
             };
             
-            // フォーム送信
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = API_URL;
-            form.target = 'hidden_iframe';
-            
+            // URLエンコードされたフォームデータを作成
+            const formData = new URLSearchParams();
             for (const key in data) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = data[key];
-                form.appendChild(input);
+                formData.append(key, data[key]);
             }
             
-            let iframe = document.getElementById('hidden_iframe');
-            if (!iframe) {
-                iframe = document.createElement('iframe');
-                iframe.id = 'hidden_iframe';
-                iframe.name = 'hidden_iframe';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-            }
+            // 予約ボタンを無効化
+            const buttons = document.querySelectorAll('.btn-primary');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.textContent.includes('予約確定')) {
+                    btn.textContent = '送信中...';
+                }
+            });
             
-            document.body.appendChild(form);
-            form.submit();
-            
-            closeModal();
-            alert('予約を受け付けました！\n確認メールをお送りします。');
-            
-            setTimeout(() => {
-                document.body.removeChild(form);
-                loadBookings();
-            }, 1000);
+            // fetch APIで送信
+            fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: formData.toString()
+            })
+            .then(response => response.text())
+            .then(result => {
+                console.log('予約結果:', result);
+                
+                if (result === 'DOUBLE_BOOKING') {
+                    alert('申し訳ございません。\n選択された時間帯は既に予約が入っています。\n別の時間帯をお選びください。');
+                } else if (result === 'SUCCESS') {
+                    closeModal();
+                    alert('予約を受け付けました！\n確認メールをお送りします。');
+                    setTimeout(() => {
+                        loadBookings();
+                    }, 1000);
+                } else {
+                    alert('予約処理中にエラーが発生しました。\n結果: ' + result);
+                }
+            })
+            .catch(error => {
+                console.error('送信エラー:', error);
+                alert('予約送信に失敗しました。\nもう一度お試しください。');
+            })
+            .finally(() => {
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.textContent.includes('送信中')) {
+                        btn.textContent = '予約確定';
+                    }
+                });
+            });
         }
         
         // ログイン
