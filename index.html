@@ -130,38 +130,103 @@
         
         .calendar-view {
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch; /* スムーズなスクロール */
+            -webkit-overflow-scrolling: touch;
         }
         
-        /* スマホ対応：横スクロールのヒント */
+        /* スマホ対応：縦スクロール */
         @media (max-width: 768px) {
             .calendar-view {
-                position: relative;
-            }
-            
-            .calendar-view::after {
-                content: '← 左右にスクロール →';
-                display: block;
-                text-align: center;
-                padding: 10px;
-                background: #fff3e0;
-                color: #e65100;
-                font-size: 12px;
-                border-top: 1px solid #ffcc80;
+                overflow-x: visible;
+                overflow-y: auto;
             }
         }
         
         .calendar-grid {
             display: grid;
-            grid-template-columns: 150px repeat(24, minmax(60px, 1fr));
+            grid-template-columns: 150px repeat(48, minmax(60px, 1fr));
             min-width: 1600px;
         }
         
-        /* スマホ対応 */
+        /* スマホ対応：縦レイアウト */
         @media (max-width: 768px) {
             .calendar-grid {
-                grid-template-columns: 100px repeat(48, minmax(50px, 1fr));
-                min-width: 2500px;
+                display: block;
+                min-width: auto;
+            }
+            
+            /* スタジオごとにセクション分け */
+            .studio-section {
+                margin-bottom: 30px;
+            }
+            
+            .studio-section-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px;
+                font-weight: 600;
+                font-size: 16px;
+                text-align: center;
+                border-radius: 8px 8px 0 0;
+                position: sticky;
+                top: 0;
+                z-index: 5;
+            }
+            
+            .time-slot-mobile {
+                display: grid;
+                grid-template-columns: 100px 1fr;
+                border-bottom: 1px solid #e0e0e0;
+                min-height: 60px;
+                align-items: center;
+            }
+            
+            .time-label-mobile {
+                background: #f5f5f5;
+                padding: 15px;
+                font-weight: 600;
+                font-size: 14px;
+                text-align: center;
+                border-right: 1px solid #e0e0e0;
+            }
+            
+            .time-content-mobile {
+                padding: 10px;
+                min-height: 60px;
+                position: relative;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            
+            .time-content-mobile:hover {
+                background: #f0f7ff;
+            }
+            
+            .time-content-mobile.occupied {
+                background: #ffebee;
+                cursor: not-allowed;
+            }
+            
+            .time-content-mobile.occupied:hover {
+                background: #ffcdd2;
+            }
+            
+            .time-content-mobile.personal {
+                background: #fff3e0;
+                cursor: pointer;
+            }
+            
+            .booking-label-mobile {
+                background: #ef5350;
+                color: white;
+                padding: 10px;
+                border-radius: 4px;
+                text-align: center;
+                font-weight: 600;
+                font-size: 14px;
+            }
+            
+            .booking-label-mobile.personal {
+                background: #ff9800;
             }
         }
         
@@ -607,6 +672,18 @@
             const studioFilter = document.getElementById('studioFilter').value;
             const studios = studioFilter === 'all' ? ['A', 'B'] : [studioFilter];
             
+            // スマホ判定
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                renderMobileCalendar(studios);
+            } else {
+                renderDesktopCalendar(studios);
+            }
+        }
+        
+        // PC版：横グリッド表示
+        function renderDesktopCalendar(studios) {
             let html = '<div class="calendar-grid" style="grid-template-columns: 150px repeat(48, minmax(60px, 1fr));">';
             
             // ヘッダー行（30分刻み）
@@ -625,23 +702,18 @@
                 for (let slot = 0; slot < 48; slot++) {
                     const booking = findBookingAtSlot(studio, slot);
                     
-                    // このスロットが予約で占有されている場合
                     if (booking) {
-                        // 予約の開始地点の場合のみ描画
                         if (booking.isStart) {
                             const span = Math.min(booking.durationSlots || 1, 48 - slot);
-                            
-                            // 利用タイプを判定
+                            const fullText = (booking.title || '') + ' ' + (booking.description || '');
                             let displayText = 'レンタル';
                             let isPersonal = false;
-                            const fullText = (booking.title || '') + ' ' + (booking.description || '');
                             
                             if (fullText.includes('個人利用') || fullText.includes('シェア')) {
                                 displayText = '個人利用';
                                 isPersonal = true;
                             }
                             
-                            // 個人利用でA Studioかつメンバーの場合はクリック可能
                             if (isPersonal && studio === 'A' && userType === 'member') {
                                 html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
                                     '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">' + displayText + '</div>' +
@@ -654,15 +726,12 @@
                             
                             cellCount += span;
                         }
-                        // 予約の途中のスロットはスキップ（セルを作らない）
                     } else {
-                        // 空きスロット
                         html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
                         cellCount++;
                     }
                 }
                 
-                // 不足分のセルを追加（正確に48セルにする）
                 while (cellCount < 48) {
                     html += '<div class="time-cell"></div>';
                     cellCount++;
@@ -670,6 +739,67 @@
             });
             
             html += '</div>';
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+        
+        // スマホ版：縦タイムライン表示
+        function renderMobileCalendar(studios) {
+            let html = '';
+            
+            studios.forEach(studio => {
+                html += '<div class="studio-section">';
+                html += '<div class="studio-section-header">' + studio + ' Studio</div>';
+                
+                // 30分刻みで全時間帯を表示
+                for (let slot = 0; slot < 48; slot++) {
+                    const hour = Math.floor(slot / 2);
+                    const minute = (slot % 2) * 30;
+                    const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                    
+                    const booking = findBookingAtSlot(studio, slot);
+                    
+                    html += '<div class="time-slot-mobile">';
+                    html += '<div class="time-label-mobile">' + timeStr + '</div>';
+                    
+                    if (booking && booking.isStart) {
+                        const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                        let displayText = 'レンタル';
+                        let isPersonal = false;
+                        
+                        if (fullText.includes('個人利用') || fullText.includes('シェア')) {
+                            displayText = '個人利用';
+                            isPersonal = true;
+                        }
+                        
+                        const durationHours = (booking.durationSlots || 1) / 2;
+                        const endSlot = slot + booking.durationSlots;
+                        const endHour = Math.floor(endSlot / 2);
+                        const endMinute = (endSlot % 2) * 30;
+                        const endTimeStr = String(endHour).padStart(2, '0') + ':' + String(endMinute).padStart(2, '0');
+                        
+                        if (isPersonal && studio === 'A' && userType === 'member') {
+                            html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
+                            html += '<div class="booking-label-mobile personal">' + displayText + '<br><small>' + timeStr + ' - ' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '</div>';
+                        } else {
+                            html += '<div class="time-content-mobile occupied">';
+                            html += '<div class="booking-label-mobile">' + displayText + '<br><small>' + timeStr + ' - ' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '</div>';
+                        }
+                    } else if (booking && !booking.isStart) {
+                        // 予約の途中：空欄（スキップ）
+                        html += '<div class="time-content-mobile occupied" style="background: #fafafa; border-left: 3px solid #ef5350;"></div>';
+                    } else {
+                        // 空き時間
+                        html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            });
+            
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
@@ -932,6 +1062,15 @@
                 renderCalendar();
             }
         }
+        
+        // ウィンドウリサイズ時にカレンダーを再描画
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                renderCalendar();
+            }, 250);
+        });
     </script>
 </body>
 </html>
