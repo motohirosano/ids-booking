@@ -965,6 +965,7 @@
             const usageType = document.getElementById('usageType').value;
             const duration = parseInt(document.getElementById('duration').value);
             const isMember = userType === 'member';
+            const startHour = selectedBooking.hour;
             
             let price = 0;
             
@@ -976,18 +977,33 @@
                 return;
             }
             
-            if (usageType === 'personal' && studio === 'A') {
-                price = 500;
-                if (duration > 2) price += (duration - 2) * 250;
+            // 深夜時間帯判定（0:00〜5:59）
+            const isLateNight = startHour >= 0 && startHour < 6;
+            
+            if (isLateNight) {
+                // 深夜料金（時間単位）
+                if (studio === 'A') {
+                    price = isMember ? (500 * duration) : (850 * duration);
+                } else { // B Studio
+                    price = isMember ? (700 * duration) : (1000 * duration);
+                }
             } else {
-                const base = studio === 'A' 
-                    ? (isMember ? 2000 : 3000)
-                    : (isMember ? 3000 : 4000);
-                const hourly = studio === 'A'
-                    ? (isMember ? 1000 : 1500)
-                    : (isMember ? 1500 : 2000);
-                
-                price = duration <= 2 ? base : base + (duration - 2) * hourly;
+                // 通常料金
+                if (usageType === 'personal' && studio === 'A') {
+                    // 個人利用（A Studioのみ）
+                    price = 500;
+                    if (duration > 2) price += (duration - 2) * 250;
+                } else {
+                    // レンタル（貸切）
+                    const base = studio === 'A' 
+                        ? (isMember ? 2000 : 3000)
+                        : (isMember ? 3000 : 4000);
+                    const hourly = studio === 'A'
+                        ? (isMember ? 1000 : 1500)
+                        : (isMember ? 1500 : 2000);
+                    
+                    price = duration <= 2 ? base : base + (duration - 2) * hourly;
+                }
             }
             
             document.getElementById('priceDisplay').textContent = '¥' + price.toLocaleString();
