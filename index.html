@@ -977,24 +977,23 @@
                 return;
             }
             
-            // 深夜時間帯判定（0:00〜5:59）
-            const isLateNight = startHour >= 0 && startHour < 6;
-            
-            if (isLateNight) {
-                // 深夜料金（時間単位）
-                if (studio === 'A') {
-                    price = isMember ? (500 * duration) : (850 * duration);
-                } else { // B Studio
-                    price = isMember ? (700 * duration) : (1000 * duration);
-                }
+            // 個人利用は時間関係なく一律料金
+            if (usageType === 'personal' && studio === 'A') {
+                price = 500;
+                if (duration > 2) price += (duration - 2) * 250;
             } else {
-                // 通常料金
-                if (usageType === 'personal' && studio === 'A') {
-                    // 個人利用（A Studioのみ）
-                    price = 500;
-                    if (duration > 2) price += (duration - 2) * 250;
+                // レンタル料金は深夜時間帯で変動
+                const isLateNight = startHour >= 0 && startHour < 6;
+                
+                if (isLateNight) {
+                    // 深夜料金（時間単位）
+                    if (studio === 'A') {
+                        price = isMember ? (500 * duration) : (850 * duration);
+                    } else { // B Studio
+                        price = isMember ? (700 * duration) : (1000 * duration);
+                    }
                 } else {
-                    // レンタル（貸切）
+                    // 通常レンタル料金
                     const base = studio === 'A' 
                         ? (isMember ? 2000 : 3000)
                         : (isMember ? 3000 : 4000);
