@@ -723,6 +723,7 @@
                 
                 for (let slot = 0; slot < 48; slot++) {
                     const booking = findBookingAtSlot(studio, slot);
+                    const isTooSoon = isWithin90Minutes(slot);
                     
                     if (booking) {
                         if (booking.isStart) {
@@ -736,20 +737,41 @@
                                 isPersonal = true;
                             }
                             
-                            if (isPersonal && studio === 'A' && userType === 'member') {
+                            // 個人利用かつメンバーログイン中で5枠未満の場合はクリック可能
+                            const personalCount = countPersonalAtSlot(studio, slot);
+                            if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
                                 html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
-                                    '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">' + displayText + '</div>' +
+                                    '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">○</div>' +
                                     '</div>';
                             } else {
                                 html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
-                                    '<div class="booking-bar">' + displayText + '</div>' +
+                                    '<div class="booking-bar">×</div>' +
                                     '</div>';
                             }
                             
                             cellCount += span;
                         }
                     } else {
-                        html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
+                        // 空き時間の判定
+                        const personalCount = countPersonalAtSlot(studio, slot);
+                        const hasRental = hasRentalAtSlot(studio, slot);
+                        
+                        if (isTooSoon) {
+                            // 1時間30分以内：クリック不可
+                            html += '<div class="time-cell" style="background: #f5f5f5; cursor: not-allowed;"><div style="padding: 5px; font-size: 11px; color: #999;">×</div></div>';
+                        } else if (hasRental) {
+                            // レンタル予約あり：×
+                            html += '<div class="time-cell occupied"><div style="padding: 5px; font-size: 11px;">×</div></div>';
+                        } else if (studio === 'A' && personalCount < 5) {
+                            // A Studioで個人利用5枠未満：○
+                            html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 5px; font-size: 11px; color: #4CAF50; font-weight: bold;">○</div></div>';
+                        } else if (studio === 'B') {
+                            // B Studio：○
+                            html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 5px; font-size: 11px; color: #4CAF50; font-weight: bold;">○</div></div>';
+                        } else {
+                            // 5枠埋まっている：×
+                            html += '<div class="time-cell occupied"><div style="padding: 5px; font-size: 11px;">×</div></div>';
+                        }
                         cellCount++;
                     }
                 }
@@ -780,6 +802,7 @@
                     const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
                     
                     const booking = findBookingAtSlot(studio, slot);
+                    const isTooSoon = isWithin90Minutes(slot);
                     
                     html += '<div class="time-slot-mobile">';
                     html += '<div class="time-label-mobile">' + timeStr + '</div>';
@@ -800,21 +823,40 @@
                         const endMinute = (endSlot % 2) * 30;
                         const endTimeStr = String(endHour).padStart(2, '0') + ':' + String(endMinute).padStart(2, '0');
                         
-                        if (isPersonal && studio === 'A' && userType === 'member') {
+                        const personalCount = countPersonalAtSlot(studio, slot);
+                        if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
                             html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
-                            html += '<div class="booking-label-mobile personal">' + displayText + '<br><small>〜' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '<div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div>';
                             html += '</div>';
                         } else {
                             html += '<div class="time-content-mobile occupied">';
-                            html += '<div class="booking-label-mobile">' + displayText + '<br><small>〜' + endTimeStr + ' (' + durationHours + 'h)</small></div>';
+                            html += '<div style="padding: 8px 5px; font-size: 16px; color: #999; font-weight: bold; text-align: center;">×</div>';
                             html += '</div>';
                         }
                     } else if (booking && !booking.isStart) {
-                        // 予約の途中：薄グレー
-                        html += '<div class="time-content-mobile occupied" style="background: #fafafa; border-left: 3px solid #ef5350;"></div>';
+                        // 予約の途中：×
+                        html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                     } else {
-                        // 空き時間
-                        html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"></div>';
+                        // 空き時間の判定
+                        const personalCount = countPersonalAtSlot(studio, slot);
+                        const hasRental = hasRentalAtSlot(studio, slot);
+                        
+                        if (isTooSoon) {
+                            // 1時間30分以内：クリック不可
+                            html += '<div class="time-content-mobile" style="background: #f5f5f5; cursor: not-allowed;"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
+                        } else if (hasRental) {
+                            // レンタル予約あり：×
+                            html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
+                        } else if (studio === 'A' && personalCount < 5) {
+                            // A Studioで個人利用5枠未満：○
+                            html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div></div>';
+                        } else if (studio === 'B') {
+                            // B Studio：○
+                            html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div></div>';
+                        } else {
+                            // 5枠埋まっている：×
+                            html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
+                        }
                     }
                     
                     html += '</div>';
@@ -840,6 +882,23 @@
                 }
             }
             return null;
+        }
+        
+        // 1時間30分以内の時間帯かチェック
+        function isWithin90Minutes(slot) {
+            const selectedDate = document.getElementById('selectedDate').value;
+            const now = new Date();
+            
+            // 選択された日付と時間を組み合わせて日時を作成
+            const slotHour = Math.floor(slot / 2);
+            const slotMinute = (slot % 2) * 30;
+            const slotDateTime = new Date(selectedDate + 'T' + String(slotHour).padStart(2, '0') + ':' + String(slotMinute).padStart(2, '0') + ':00');
+            
+            // 現在時刻から1時間30分（90分 = 5400000ミリ秒）
+            const diffMs = slotDateTime - now;
+            const minutesDiff = diffMs / 60000;
+            
+            return minutesDiff < 90;
         }
         
         // 個人利用の予約数をカウント
@@ -921,6 +980,12 @@
         
         // 予約モーダルを開く
         function openBookingModal(studio, slot) {
+            // 時間制限チェック
+            if (isWithin90Minutes(slot)) {
+                alert('申し訳ございません、その時間は予約ができません。');
+                return;
+            }
+            
             const hour = Math.floor(slot / 2);
             const minute = (slot % 2) * 30;
             const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
@@ -1128,68 +1193,6 @@
                 renderCalendar();
             }, 250);
         });
-
-                // 〇×表示: renderCalendarを上書き
-                renderCalendar = function() {
-                                const sf = document.getElementById('studioFilter').value;
-                                const studios = sf === 'all' ? ['A', 'B'] : [sf];
-                                if (window.innerWidth <= 768) {
-                                                    _renderMobileOX(studios);
-                                } else {
-                                                    _renderDesktopOX(studios);
-                                }
-                };
-                function _renderDesktopOX(studios) {
-                                let html = '<div class="calendar-grid" style="grid-template-columns: 150px repeat(48, minmax(60px, 1fr));">';
-                                html += '<div class="time-header">スタジオ</div>';
-                                for (let h = 0; h < 24; h++) {
-                                                    html += '<div class="time-slot">' + String(h).padStart(2,'0') + ':00</div>';
-                                                    html += '<div class="time-slot">' + String(h).padStart(2,'0') + ':30</div>';
-                                }
-                                studios.forEach(function(studio) {
-                                                    html += '<div class="studio-row">' + studio + ' Studio</div>';
-                                                    let cellCount = 0;
-                                                    for (let slot = 0; slot < 48; slot++) {
-                                                                            const booking = findBookingAtSlot(studio, slot);
-                                                                            if (booking && booking.isStart) {
-                                                                                                        const span = Math.min(booking.durationSlots || 1, 48 - slot);
-                                                                                                        html += '<div class="time-cell occupied" style="grid-column:span ' + span + ';background:#ef5350;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:20px;font-weight:bold;">×</span></div>';
-                                                                                                        cellCount += span;
-                                                                                } else if (!booking) {
-                                                                                                        html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\',' + slot + ')" style="text-align:center;font-size:18px;font-weight:bold;color:#4caf50;display:flex;align-items:center;justify-content:center;cursor:pointer;">〇</div>';
-                                                                                                        cellCount++;
-                                                                                }
-                                                    }
-                                                    while (cellCount < 48) {
-                                                                            html += '<div class="time-cell" style="text-align:center;font-size:18px;font-weight:bold;color:#4caf50;display:flex;align-items:center;justify-content:center;">〇</div>';
-                                                                            cellCount++;
-                                                    }
-                                });
-                                html += '</div>';
-                                document.getElementById('calendarGrid').innerHTML = html;
-                }
-                function _renderMobileOX(studios) {
-                                const cls = studios.length === 1 ? 'studios-container single' : 'studios-container';
-                                let html = '<div class="' + cls + '">';
-                                studios.forEach(function(studio) {
-                                                    html += '<div class="studio-section"><div class="studio-section-header">' + studio + ' Studio</div>';
-                                                    for (let slot = 0; slot < 48; slot++) {
-                                                                            const h = Math.floor(slot/2), m = (slot%2)*30;
-                                                                            const t = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-                                                                            const booking = findBookingAtSlot(studio, slot);
-                                                                            html += '<div class="time-slot-mobile"><div class="time-label-mobile">' + t + '</div>';
-                                                                            if (booking) {
-                                                                                                        html += '<div class="time-content-mobile occupied" style="background:#ef5350;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:20px;font-weight:bold;">×</span></div>';
-                                                                                } else {
-                                                                                                        html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\',' + slot + ')" style="display:flex;align-items:center;justify-content:center;cursor:pointer;"><span style="color:#4caf50;font-size:20px;font-weight:bold;">〇</span></div>';
-                                                                                }
-                                                                            html += '</div>';
-                                                    }
-                                                    html += '</div>';
-                                });
-                                html += '</div>';
-                                document.getElementById('calendarGrid').innerHTML = html;
-                }
     </script>
 </body>
 </html>
