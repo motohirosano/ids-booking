@@ -1128,6 +1128,68 @@
                 renderCalendar();
             }, 250);
         });
+
+                // 〇×表示: renderCalendarを上書き
+                renderCalendar = function() {
+                                const sf = document.getElementById('studioFilter').value;
+                                const studios = sf === 'all' ? ['A', 'B'] : [sf];
+                                if (window.innerWidth <= 768) {
+                                                    _renderMobileOX(studios);
+                                } else {
+                                                    _renderDesktopOX(studios);
+                                }
+                };
+                function _renderDesktopOX(studios) {
+                                let html = '<div class="calendar-grid" style="grid-template-columns: 150px repeat(48, minmax(60px, 1fr));">';
+                                html += '<div class="time-header">スタジオ</div>';
+                                for (let h = 0; h < 24; h++) {
+                                                    html += '<div class="time-slot">' + String(h).padStart(2,'0') + ':00</div>';
+                                                    html += '<div class="time-slot">' + String(h).padStart(2,'0') + ':30</div>';
+                                }
+                                studios.forEach(function(studio) {
+                                                    html += '<div class="studio-row">' + studio + ' Studio</div>';
+                                                    let cellCount = 0;
+                                                    for (let slot = 0; slot < 48; slot++) {
+                                                                            const booking = findBookingAtSlot(studio, slot);
+                                                                            if (booking && booking.isStart) {
+                                                                                                        const span = Math.min(booking.durationSlots || 1, 48 - slot);
+                                                                                                        html += '<div class="time-cell occupied" style="grid-column:span ' + span + ';background:#ef5350;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:20px;font-weight:bold;">×</span></div>';
+                                                                                                        cellCount += span;
+                                                                                } else if (!booking) {
+                                                                                                        html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\',' + slot + ')" style="text-align:center;font-size:18px;font-weight:bold;color:#4caf50;display:flex;align-items:center;justify-content:center;cursor:pointer;">〇</div>';
+                                                                                                        cellCount++;
+                                                                                }
+                                                    }
+                                                    while (cellCount < 48) {
+                                                                            html += '<div class="time-cell" style="text-align:center;font-size:18px;font-weight:bold;color:#4caf50;display:flex;align-items:center;justify-content:center;">〇</div>';
+                                                                            cellCount++;
+                                                    }
+                                });
+                                html += '</div>';
+                                document.getElementById('calendarGrid').innerHTML = html;
+                }
+                function _renderMobileOX(studios) {
+                                const cls = studios.length === 1 ? 'studios-container single' : 'studios-container';
+                                let html = '<div class="' + cls + '">';
+                                studios.forEach(function(studio) {
+                                                    html += '<div class="studio-section"><div class="studio-section-header">' + studio + ' Studio</div>';
+                                                    for (let slot = 0; slot < 48; slot++) {
+                                                                            const h = Math.floor(slot/2), m = (slot%2)*30;
+                                                                            const t = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+                                                                            const booking = findBookingAtSlot(studio, slot);
+                                                                            html += '<div class="time-slot-mobile"><div class="time-label-mobile">' + t + '</div>';
+                                                                            if (booking) {
+                                                                                                        html += '<div class="time-content-mobile occupied" style="background:#ef5350;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:20px;font-weight:bold;">×</span></div>';
+                                                                                } else {
+                                                                                                        html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\',' + slot + ')" style="display:flex;align-items:center;justify-content:center;cursor:pointer;"><span style="color:#4caf50;font-size:20px;font-weight:bold;">〇</span></div>';
+                                                                                }
+                                                                            html += '</div>';
+                                                    }
+                                                    html += '</div>';
+                                });
+                                html += '</div>';
+                                document.getElementById('calendarGrid').innerHTML = html;
+                }
     </script>
 </body>
 </html>
