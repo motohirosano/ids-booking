@@ -666,8 +666,6 @@
                     console.log('取得した予約データ:', data.bookings);
                     
                     bookings = (data.bookings || []).map(b => {
-                        // 時間を30分スロットに変換
-                        // startHour が 10.5 の場合 → slot 21 (10時30分)
                         const startSlot = Math.floor(b.startHour * 2);
                         const durationSlots = Math.ceil(b.duration * 2);
                         
@@ -694,7 +692,6 @@
             const studioFilter = document.getElementById('studioFilter').value;
             const studios = studioFilter === 'all' ? ['A', 'B'] : [studioFilter];
             
-            // スマホ判定
             const isMobile = window.innerWidth <= 768;
             
             if (isMobile) {
@@ -708,14 +705,12 @@
         function renderDesktopCalendar(studios) {
             let html = '<div class="calendar-grid" style="grid-template-columns: 150px repeat(48, minmax(60px, 1fr));">';
             
-            // ヘッダー行（30分刻み）
             html += '<div class="time-header">スタジオ</div>';
             for (let h = 0; h < 24; h++) {
                 html += '<div class="time-slot">' + String(h).padStart(2, '0') + ':00</div>';
                 html += '<div class="time-slot">' + String(h).padStart(2, '0') + ':30</div>';
             }
             
-            // スタジオ行
             studios.forEach(studio => {
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
                 
@@ -737,7 +732,6 @@
                                 isPersonal = true;
                             }
                             
-                            // 個人利用かつメンバーログイン中で5枠未満の場合はクリック可能
                             const personalCount = countPersonalAtSlot(studio, slot);
                             if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
                                 html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
@@ -752,24 +746,18 @@
                             cellCount += span;
                         }
                     } else {
-                        // 空き時間の判定
                         const personalCount = countPersonalAtSlot(studio, slot);
                         const hasRental = hasRentalAtSlot(studio, slot);
                         
                         if (isTooSoon) {
-                            // 1時間30分以内：クリック不可
                             html += '<div class="time-cell" style="background: #f5f5f5; cursor: not-allowed;"><div style="padding: 5px; font-size: 11px; color: #999;">×</div></div>';
                         } else if (hasRental) {
-                            // レンタル予約あり：×
                             html += '<div class="time-cell occupied"><div style="padding: 5px; font-size: 11px;">×</div></div>';
                         } else if (studio === 'A' && personalCount < 5) {
-                            // A Studioで個人利用5枠未満：○
                             html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 5px; font-size: 11px; color: #4CAF50; font-weight: bold;">○</div></div>';
                         } else if (studio === 'B') {
-                            // B Studio：○
                             html += '<div class="time-cell" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 5px; font-size: 11px; color: #4CAF50; font-weight: bold;">○</div></div>';
                         } else {
-                            // 5枠埋まっている：×
                             html += '<div class="time-cell occupied"><div style="padding: 5px; font-size: 11px;">×</div></div>';
                         }
                         cellCount++;
@@ -795,7 +783,6 @@
                 html += '<div class="studio-section">';
                 html += '<div class="studio-section-header">' + studio + ' Studio</div>';
                 
-                // 30分刻みで全時間帯を表示
                 for (let slot = 0; slot < 48; slot++) {
                     const hour = Math.floor(slot / 2);
                     const minute = (slot % 2) * 30;
@@ -817,12 +804,6 @@
                             isPersonal = true;
                         }
                         
-                        const durationHours = (booking.durationSlots || 1) / 2;
-                        const endSlot = slot + booking.durationSlots;
-                        const endHour = Math.floor(endSlot / 2);
-                        const endMinute = (endSlot % 2) * 30;
-                        const endTimeStr = String(endHour).padStart(2, '0') + ':' + String(endMinute).padStart(2, '0');
-                        
                         const personalCount = countPersonalAtSlot(studio, slot);
                         if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
                             html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
@@ -834,27 +815,20 @@
                             html += '</div>';
                         }
                     } else if (booking && !booking.isStart) {
-                        // 予約の途中：×
                         html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                     } else {
-                        // 空き時間の判定
                         const personalCount = countPersonalAtSlot(studio, slot);
                         const hasRental = hasRentalAtSlot(studio, slot);
                         
                         if (isTooSoon) {
-                            // 1時間30分以内：クリック不可
                             html += '<div class="time-content-mobile" style="background: #f5f5f5; cursor: not-allowed;"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                         } else if (hasRental) {
-                            // レンタル予約あり：×
                             html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                         } else if (studio === 'A' && personalCount < 5) {
-                            // A Studioで個人利用5枠未満：○
                             html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div></div>';
                         } else if (studio === 'B') {
-                            // B Studio：○
                             html += '<div class="time-content-mobile" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')"><div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div></div>';
                         } else {
-                            // 5枠埋まっている：×
                             html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                         }
                     }
@@ -869,32 +843,37 @@
             document.getElementById('calendarGrid').innerHTML = html;
         }
         
-        // 30分スロット単位で予約を検索
+        // ★修正①：30分スロット単位で予約を検索
+        // 「個人利用・シェア」以外のイベント（正規練等の手動イベント含む）を優先返却
         function findBookingAtSlot(studio, slot) {
+            let personalBooking = null;
             for (let booking of bookings) {
                 if (booking.studio === studio && 
                     slot >= booking.startSlot && 
                     slot < booking.startSlot + booking.durationSlots) {
-                    return {
-                        ...booking,
-                        isStart: slot === booking.startSlot
-                    };
+                    const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                    if (!fullText.includes('個人利用') && !fullText.includes('シェア')) {
+                        // ブロックイベント（正規練・レンタル等）を優先返却
+                        return { ...booking, isStart: slot === booking.startSlot };
+                    }
+                    if (!personalBooking) personalBooking = booking;
                 }
+            }
+            if (personalBooking) {
+                return { ...personalBooking, isStart: slot === personalBooking.startSlot };
             }
             return null;
         }
         
-        // 時間制限チェック（空き時間用: 30分、予約済み時間用: 1時間30分）
+        // 時間制限チェック（空き時間用: 30分）
         function isWithin30Minutes(slot) {
             const selectedDate = document.getElementById('selectedDate').value;
             const now = new Date();
             
-            // 選択された日付と時間を組み合わせて日時を作成
             const slotHour = Math.floor(slot / 2);
             const slotMinute = (slot % 2) * 30;
             const slotDateTime = new Date(selectedDate + 'T' + String(slotHour).padStart(2, '0') + ':' + String(slotMinute).padStart(2, '0') + ':00');
             
-            // 現在時刻から30分（30分 = 1800000ミリ秒）
             const diffMs = slotDateTime - now;
             const minutesDiff = diffMs / 60000;
             
@@ -906,12 +885,10 @@
             const selectedDate = document.getElementById('selectedDate').value;
             const now = new Date();
             
-            // 選択された日付と時間を組み合わせて日時を作成
             const slotHour = Math.floor(slot / 2);
             const slotMinute = (slot % 2) * 30;
             const slotDateTime = new Date(selectedDate + 'T' + String(slotHour).padStart(2, '0') + ':' + String(slotMinute).padStart(2, '0') + ':00');
             
-            // 現在時刻から1時間30分（90分 = 5400000ミリ秒）
             const diffMs = slotDateTime - now;
             const minutesDiff = diffMs / 60000;
             
@@ -932,20 +909,23 @@
             return count;
         }
         
-        // レンタル予約があるかチェック
+        // ★修正②：レンタル予約があるかチェック
+        // 「個人利用・シェア」以外のイベントはすべてブロック扱い（正規練等の手動イベントも含む）
         function hasRentalAtSlot(studio, slot) {
             for (let booking of bookings) {
                 if (booking.studio === studio && 
                     slot >= booking.startSlot && 
-                    slot < booking.startSlot + booking.durationSlots &&
-                    (booking.title.includes('レンタル') || booking.description.includes('レンタル'))) {
-                    return true;
+                    slot < booking.startSlot + booking.durationSlots) {
+                    const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                    if (!fullText.includes('個人利用') && !fullText.includes('シェア')) {
+                        return true;
+                    }
                 }
             }
             return false;
         }
         
-        // 個人利用の予約数をカウント
+        // 個人利用の予約数をカウント（時間単位・旧版、未使用）
         function countPersonalBookings(studio, hour) {
             let count = 0;
             for (let booking of bookings) {
@@ -959,7 +939,7 @@
             return count;
         }
         
-        // レンタル予約があるかチェック
+        // レンタル予約があるかチェック（時間単位・旧版、未使用）
         function hasRentalBooking(studio, hour) {
             for (let booking of bookings) {
                 if (booking.studio === studio && 
@@ -972,7 +952,7 @@
             return false;
         }
         
-        // 予約検索
+        // 予約検索（時間単位・旧版、未使用）
         function findBooking(studio, hour) {
             const bookingsAtTime = [];
             
@@ -987,17 +967,14 @@
             
             if (bookingsAtTime.length === 0) return null;
             
-            // レンタル予約がある場合は、それを優先表示
             const rental = bookingsAtTime.find(b => b.title.includes('レンタル'));
             if (rental) return rental;
             
-            // 個人利用のみの場合は、最初の予約を返す
             return bookingsAtTime[0];
         }
         
         // 予約モーダルを開く
         function openBookingModal(studio, slot) {
-            // 時間制限チェック（空き時間は30分前まで）
             if (isWithin30Minutes(slot)) {
                 alert('申し訳ございません、その時間は予約ができません。');
                 return;
@@ -1020,11 +997,9 @@
             document.getElementById('modalDateTime').textContent = 
                 selectedBooking.date + ' ' + timeStr + '〜';
             
-            // 利用タイプの制御
             const usageTypeSelect = document.getElementById('usageType');
             const personalOption = document.getElementById('personalOption');
             
-            // B Studioまたは非メンバーの場合は個人利用を非表示
             if (studio === 'B' || userType === 'general') {
                 personalOption.style.display = 'none';
                 usageTypeSelect.value = 'rental';
@@ -1051,7 +1026,6 @@
             
             let price = 0;
             
-            // B Studioまたは非メンバーは個人利用不可
             if (usageType === 'personal' && (studio === 'B' || !isMember)) {
                 document.getElementById('usageType').value = 'rental';
                 alert('個人利用はA Studioのメンバー専用です');
@@ -1059,23 +1033,19 @@
                 return;
             }
             
-            // 個人利用は時間関係なく一律料金
             if (usageType === 'personal' && studio === 'A') {
                 price = 500;
                 if (duration > 2) price += (duration - 2) * 250;
             } else {
-                // レンタル料金は深夜時間帯で変動
                 const isLateNight = startHour >= 0 && startHour < 6;
                 
                 if (isLateNight) {
-                    // 深夜料金（時間単位）
                     if (studio === 'A') {
                         price = isMember ? (500 * duration) : (850 * duration);
-                    } else { // B Studio
+                    } else {
                         price = isMember ? (700 * duration) : (1000 * duration);
                     }
                 } else {
-                    // 通常レンタル料金
                     const base = studio === 'A' 
                         ? (isMember ? 2000 : 3000)
                         : (isMember ? 3000 : 4000);
@@ -1114,13 +1084,11 @@
                 price: document.getElementById('priceDisplay').textContent
             };
             
-            // URLエンコードされたフォームデータを作成
             const formData = new URLSearchParams();
             for (const key in data) {
                 formData.append(key, data[key]);
             }
             
-            // 予約ボタンを無効化
             const buttons = document.querySelectorAll('.btn-primary');
             buttons.forEach(btn => {
                 btn.disabled = true;
@@ -1129,7 +1097,6 @@
                 }
             });
             
-            // fetch APIで送信
             fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -1184,7 +1151,6 @@
                 document.getElementById('loginBtn').onclick = logout;
                 closeLogin();
                 alert('メンバーログインしました！\nお得な料金でご利用いただけます。');
-                // カレンダーを再描画して個人利用をクリック可能に
                 renderCalendar();
             } else {
                 alert('パスワードが正しくありません');
@@ -1197,7 +1163,6 @@
                 document.getElementById('loginBtn').textContent = '🔒 メンバーログイン';
                 document.getElementById('loginBtn').onclick = showLogin;
                 alert('ログアウトしました');
-                // カレンダーを再描画
                 renderCalendar();
             }
         }
