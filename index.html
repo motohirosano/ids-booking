@@ -1021,6 +1021,27 @@
             document.getElementById('bookingModal').classList.remove('active');
         }
         
+        // ★B5: 30分単位で時間帯別の時間数を計算
+        // 深夜（0:00-5:59）と通常（6:00-23:59）の各バンドに含まれる時間数を返す
+        function calcBandedHours(startHour, startMinute, duration) {
+            const totalHalfHours = duration * 2;
+            let nightHalves = 0;
+            let dayHalves = 0;
+            let currentMinutes = startHour * 60 + startMinute;
+
+            for (let i = 0; i < totalHalfHours; i++) {
+                const hourOfDay = Math.floor(currentMinutes / 60) % 24;
+                if (hourOfDay >= 0 && hourOfDay < 6) {
+                    nightHalves++;
+                } else {
+                    dayHalves++;
+                }
+                currentMinutes += 30;
+            }
+
+            return { nightHours: nightHalves / 2, dayHours: dayHalves / 2 };
+        }
+
         // 料金計算
         function calculatePrice() {
             const studio = selectedBooking.studio;
@@ -1028,40 +1049,56 @@
             const duration = parseInt(document.getElementById('duration').value);
             const isMember = userType === 'member';
             const startHour = selectedBooking.hour;
-            
+            const startMinute = selectedBooking.minute || 0;
+
             let price = 0;
-            
+
             if (usageType === 'personal' && (studio === 'B' || !isMember)) {
                 document.getElementById('usageType').value = 'rental';
                 alert('個人利用はA Studioのメンバー専用です');
                 calculatePrice();
                 return;
             }
-            
+
             if (usageType === 'personal' && studio === 'A') {
+                // 個人利用は時間帯按分なし（全時間 500円/2h + 250円/h）
                 price = 500;
                 if (duration > 2) price += (duration - 2) * 250;
             } else {
-                const isLateNight = startHour >= 0 && startHour < 6;
-                
-                if (isLateNight) {
-                    if (studio === 'A') {
-                        price = isMember ? (500 * duration) : (850 * duration);
+                // ★B5: 時間帯按分（案A：純粋按分）
+                //   深夜と通常の両方を含む跨ぎ予約は、それぞれの時間単価で計算
+                //   通常時間のみの場合は base 2h縛りを維持
+                const bands = calcBandedHours(startHour, startMinute, duration);
+                const nightHours = bands.nightHours;
+                const dayHours = bands.dayHours;
+
+                // 各バンドの料金単価
+                const nightRate = studio === 'A'
+                    ? (isMember ? 500 : 850)
+                    : (isMember ? 700 : 1000);
+                const dayBase = studio === 'A'
+                    ? (isMember ? 2000 : 3000)
+                    : (isMember ? 3000 : 4000);
+                const dayHourly = studio === 'A'
+                    ? (isMember ? 1000 : 1500)
+                    : (isMember ? 1500 : 2000);
+
+                const nightPrice = nightHours * nightRate;
+                let dayPrice = 0;
+
+                if (dayHours > 0) {
+                    if (nightHours === 0) {
+                        // 通常時間のみ：base 2h縛りを適用
+                        dayPrice = dayHours <= 2 ? dayBase : dayBase + (dayHours - 2) * dayHourly;
                     } else {
-                        price = isMember ? (700 * duration) : (1000 * duration);
+                        // 跨ぎ予約：通常時間部分も時間単価で按分（base縛りなし）
+                        dayPrice = dayHours * dayHourly;
                     }
-                } else {
-                    const base = studio === 'A' 
-                        ? (isMember ? 2000 : 3000)
-                        : (isMember ? 3000 : 4000);
-                    const hourly = studio === 'A'
-                        ? (isMember ? 1000 : 1500)
-                        : (isMember ? 1500 : 2000);
-                    
-                    price = duration <= 2 ? base : base + (duration - 2) * hourly;
                 }
+
+                price = nightPrice + dayPrice;
             }
-            
+
             document.getElementById('priceDisplay').textContent = '¥' + price.toLocaleString();
         }
         
