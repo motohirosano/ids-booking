@@ -718,7 +718,8 @@
 
                 for (let slot = 0; slot < 48; slot++) {
                     const booking = findBookingAtSlot(studio, slot);
-                    const isTooSoon = booking ? isWithin90Minutes(slot) : isWithin30Minutes(slot);
+                    // ★時間制限を30分に統一（空き枠・既存個人利用枠とも現時刻+30分以降ならOK）
+                    const isTooSoon = isWithin30Minutes(slot);
 
                     if (booking) {
                         const fullText = (booking.title || '') + ' ' + (booking.description || '');
@@ -793,7 +794,8 @@
                     const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
                     
                     const booking = findBookingAtSlot(studio, slot);
-                    const isTooSoon = booking ? isWithin90Minutes(slot) : isWithin30Minutes(slot);
+                    // ★時間制限を30分に統一（空き枠・既存個人利用枠とも現時刻+30分以降ならOK）
+                    const isTooSoon = isWithin30Minutes(slot);
                     
                     html += '<div class="time-slot-mobile">';
                     html += '<div class="time-label-mobile">' + timeStr + '</div>';
@@ -887,21 +889,13 @@
             return minutesDiff < 30;
         }
         
-        // 1時間30分以内の時間帯かチェック（予約済み時間用）
+        // ※旧：予約済み時間用の90分チェック関数。現在はisWithin30Minutesに統一済みのため未使用。
+        //   後方互換のため残置しているが、新規コードからは呼び出さないこと。
         function isWithin90Minutes(slot) {
-            const selectedDate = document.getElementById('selectedDate').value;
-            const now = new Date();
-            
-            const slotHour = Math.floor(slot / 2);
-            const slotMinute = (slot % 2) * 30;
-            const slotDateTime = new Date(selectedDate + 'T' + String(slotHour).padStart(2, '0') + ':' + String(slotMinute).padStart(2, '0') + ':00');
-            
-            const diffMs = slotDateTime - now;
-            const minutesDiff = diffMs / 60000;
-            
-            return minutesDiff < 90;
+            return isWithin30Minutes(slot);
         }
-        
+
+
         // 個人利用の予約数をカウント
         // ★B2: title/descriptionがundefinedでも落ちないようガード
         // ★B3: 他関数と整合させ「個人利用」「シェア」両方を個人利用としてカウント
