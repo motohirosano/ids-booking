@@ -713,42 +713,46 @@
             
             studios.forEach(studio => {
                 html += '<div class="studio-row">' + studio + ' Studio</div>';
-                
+
                 let cellCount = 0;
-                
+
                 for (let slot = 0; slot < 48; slot++) {
                     const booking = findBookingAtSlot(studio, slot);
                     const isTooSoon = booking ? isWithin90Minutes(slot) : isWithin30Minutes(slot);
-                    
+
                     if (booking) {
-                        if (booking.isStart) {
-                            const span = Math.min(booking.durationSlots || 1, 48 - slot);
-                            const fullText = (booking.title || '') + ' ' + (booking.description || '');
-                            let displayText = 'レンタル';
-                            let isPersonal = false;
-                            
-                            if (fullText.includes('個人利用') || fullText.includes('シェア')) {
-                                displayText = '個人利用';
-                                isPersonal = true;
-                            }
-                            
+                        const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                        const isPersonal = fullText.includes('個人利用') || fullText.includes('シェア');
+
+                        if (isPersonal) {
+                            // ★修正: 個人利用予約は30分スロット単位で個別判定
+                            // 開始時刻が90分以内でも、後続スロット（90分以遠）には追加予約可能
                             const personalCount = countPersonalAtSlot(studio, slot);
-                            if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
-                                html += '<div class="time-cell" style="grid-column: span ' + span + '; background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
+                            const isJoinable = studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon;
+
+                            if (isJoinable) {
+                                html += '<div class="time-cell" style="background: #fff3e0; cursor: pointer;" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">' +
                                     '<div style="padding: 5px; font-size: 11px; color: #e65100; font-weight: bold;">○</div>' +
                                     '</div>';
                             } else {
+                                html += '<div class="time-cell occupied"><div style="padding: 5px; font-size: 11px;">×</div></div>';
+                            }
+                            cellCount++;
+                        } else {
+                            // レンタル/ブロックイベントは従来通り大きな枠で表示
+                            if (booking.isStart) {
+                                const span = Math.min(booking.durationSlots || 1, 48 - slot);
                                 html += '<div class="time-cell occupied" style="grid-column: span ' + span + ';">' +
                                     '<div class="booking-bar">×</div>' +
                                     '</div>';
+                                cellCount += span;
                             }
-                            
-                            cellCount += span;
+                            // 継続スロットはspanで覆われるため何もしない
                         }
                     } else {
                         const personalCount = countPersonalAtSlot(studio, slot);
                         const hasRental = hasRentalAtSlot(studio, slot);
-                        
+
                         if (isTooSoon) {
                             html += '<div class="time-cell" style="background: #f5f5f5; cursor: not-allowed;"><div style="padding: 5px; font-size: 11px; color: #999;">×</div></div>';
                         } else if (hasRental) {
@@ -763,7 +767,7 @@
                         cellCount++;
                     }
                 }
-                
+
                 while (cellCount < 48) {
                     html += '<div class="time-cell"></div>';
                     cellCount++;
@@ -794,28 +798,31 @@
                     html += '<div class="time-slot-mobile">';
                     html += '<div class="time-label-mobile">' + timeStr + '</div>';
                     
-                    if (booking && booking.isStart) {
+                    if (booking) {
                         const fullText = (booking.title || '') + ' ' + (booking.description || '');
-                        let displayText = 'レンタル';
-                        let isPersonal = false;
-                        
-                        if (fullText.includes('個人利用') || fullText.includes('シェア')) {
-                            displayText = '個人利用';
-                            isPersonal = true;
-                        }
-                        
-                        const personalCount = countPersonalAtSlot(studio, slot);
-                        if (isPersonal && studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon) {
-                            html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
-                            html += '<div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div>';
-                            html += '</div>';
+                        const isPersonal = fullText.includes('個人利用') || fullText.includes('シェア');
+
+                        if (isPersonal) {
+                            // ★修正: 個人利用予約は30分スロット単位で個別判定
+                            // isStartに関わらず、各スロットで参加可否を判定
+                            const personalCount = countPersonalAtSlot(studio, slot);
+                            const isJoinable = studio === 'A' && userType === 'member' && personalCount < 5 && !isTooSoon;
+
+                            if (isJoinable) {
+                                html += '<div class="time-content-mobile personal" onclick="openBookingModal(\'' + studio + '\', ' + slot + ')">';
+                                html += '<div style="padding: 8px 5px; font-size: 16px; color: #4CAF50; font-weight: bold; text-align: center;">○</div>';
+                                html += '</div>';
+                            } else {
+                                html += '<div class="time-content-mobile occupied">';
+                                html += '<div style="padding: 8px 5px; font-size: 16px; color: #999; font-weight: bold; text-align: center;">×</div>';
+                                html += '</div>';
+                            }
                         } else {
+                            // レンタル/ブロックイベントは全スロット占有として表示
                             html += '<div class="time-content-mobile occupied">';
                             html += '<div style="padding: 8px 5px; font-size: 16px; color: #999; font-weight: bold; text-align: center;">×</div>';
                             html += '</div>';
                         }
-                    } else if (booking && !booking.isStart) {
-                        html += '<div class="time-content-mobile occupied"><div style="padding: 8px 5px; font-size: 16px; color: #999; text-align: center;">×</div></div>';
                     } else {
                         const personalCount = countPersonalAtSlot(studio, slot);
                         const hasRental = hasRentalAtSlot(studio, slot);
@@ -896,14 +903,18 @@
         }
         
         // 個人利用の予約数をカウント
+        // ★B2: title/descriptionがundefinedでも落ちないようガード
+        // ★B3: 他関数と整合させ「個人利用」「シェア」両方を個人利用としてカウント
         function countPersonalAtSlot(studio, slot) {
             let count = 0;
             for (let booking of bookings) {
-                if (booking.studio === studio && 
-                    slot >= booking.startSlot && 
-                    slot < booking.startSlot + booking.durationSlots &&
-                    (booking.title.includes('個人利用') || booking.description.includes('個人利用'))) {
-                    count++;
+                if (booking.studio === studio &&
+                    slot >= booking.startSlot &&
+                    slot < booking.startSlot + booking.durationSlots) {
+                    const fullText = (booking.title || '') + ' ' + (booking.description || '');
+                    if (fullText.includes('個人利用') || fullText.includes('シェア')) {
+                        count++;
+                    }
                 }
             }
             return count;
