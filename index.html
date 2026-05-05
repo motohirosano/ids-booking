@@ -640,16 +640,28 @@
     
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbzBznDLEP8s22f2ZcNHrjnvVtZxLu-FEkJtvnSxwK0qq70DtQRJLUdVUxARlfOca7fe/exec';
-        const MEMBER_PASSWORD = 'ids';
-        
+        // ★B7: パスワードはGAS側に移動。フロントには平文を残さない。
+        const MEMBER_TOKEN_KEY = 'idsMemberToken';
+
         let userType = 'general';
+        let memberToken = null;
         let bookings = [];
         let selectedBooking = {};
-        
+
         // 初期化
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('selectedDate').value = today;
+
+            // ★B7: localStorageから保存済みトークンを復元
+            const savedToken = localStorage.getItem(MEMBER_TOKEN_KEY);
+            if (savedToken) {
+                memberToken = savedToken;
+                userType = 'member';
+                document.getElementById('loginBtn').textContent = '🔓 ログアウト';
+                document.getElementById('loginBtn').onclick = logout;
+            }
+
             loadBookings();
         };
         
@@ -1125,7 +1137,12 @@
                 duration: document.getElementById('duration').value,
                 price: document.getElementById('priceDisplay').textContent
             };
-            
+
+            // ★B7: メンバーの場合はトークンを添付（GAS側で偽装ブロック）
+            if (userType === 'member' && memberToken) {
+                data.memberToken = memberToken;
+            }
+
             const formData = new URLSearchParams();
             for (const key in data) {
                 formData.append(key, data[key]);
@@ -1152,6 +1169,11 @@
                 
                 if (result === 'DOUBLE_BOOKING') {
                     alert('申し訳ございません。\n選択された時間帯は既に予約が入っています。\n別の時間帯をお選びください。');
+                } else if (result === 'INVALID_TOKEN') {
+                    // ★B7: トークン期限切れ → 再ログイン誘導
+                    alert('メンバーセッションの有効期限が切れました。\n再度ログインしてください。');
+                    _clearMemberSession();
+                    renderCalendar();
                 } else if (result === 'SUCCESS') {
                     closeModal();
                     alert('予約を受け付けました！\n確認メールをお送りします。');
@@ -1185,25 +1207,69 @@
             document.getElementById('loginModal').classList.remove('active');
         }
         
+        // ★B7: メンバーセッション状態をクリア（ログアウト処理の共通化）
+        function _clearMemberSession() {
+            memberToken = null;
+            userType = 'general';
+            localStorage.removeItem(MEMBER_TOKEN_KEY);
+            document.getElementById('loginBtn').textContent = '🔒 メンバーログイン';
+            document.getElementById('loginBtn').onclick = showLogin;
+        }
+
+        // ★B7: GAS側でパスワード認証 → トークン取得 → localStorageに保存
         function login() {
             const password = document.getElementById('loginPassword').value;
-            if (password === MEMBER_PASSWORD) {
-                userType = 'member';
-                document.getElementById('loginBtn').textContent = '🔓 ログアウト';
-                document.getElementById('loginBtn').onclick = logout;
-                closeLogin();
-                alert('メンバーログインしました！\nお得な料金でご利用いただけます。');
-                renderCalendar();
-            } else {
-                alert('パスワードが正しくありません');
+            if (!password) {
+                alert('パスワードを入力してください');
+                return;
             }
+
+            const loginButtons = document.querySelectorAll('#loginModal .btn-primary');
+            loginButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.textContent = '確認中...';
+            });
+
+            const formData = new URLSearchParams();
+            formData.append('action', 'login');
+            formData.append('password', password);
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success && result.token) {
+                    memberToken = result.token;
+                    localStorage.setItem(MEMBER_TOKEN_KEY, memberToken);
+                    userType = 'member';
+                    document.getElementById('loginBtn').textContent = '🔓 ログアウト';
+                    document.getElementById('loginBtn').onclick = logout;
+                    document.getElementById('loginPassword').value = '';
+                    closeLogin();
+                    alert('メンバーログインしました！\nお得な料金でご利用いただけます。');
+                    renderCalendar();
+                } else {
+                    alert(result.message || 'パスワードが正しくありません');
+                }
+            })
+            .catch(err => {
+                console.error('ログインエラー:', err);
+                alert('ログインに失敗しました。\nネットワークをご確認の上、再度お試しください。');
+            })
+            .finally(() => {
+                loginButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.textContent = 'ログイン';
+                });
+            });
         }
-        
+
         function logout() {
             if (confirm('ログアウトしますか？')) {
-                userType = 'general';
-                document.getElementById('loginBtn').textContent = '🔒 メンバーログイン';
-                document.getElementById('loginBtn').onclick = showLogin;
+                _clearMemberSession();
                 alert('ログアウトしました');
                 renderCalendar();
             }
