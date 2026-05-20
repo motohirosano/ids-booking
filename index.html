@@ -665,38 +665,80 @@
             loadBookings();
         };
         
-        // 予約データ読み込み
+        // 日付文字列(yyyy-mm-dd)から前日の日付文字列を返す
+        function getPreviousDateStr(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            d.setDate(d.getDate() - 1);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+        }
+
+        // 予約データ読み込み（日跨ぎ予約の重複返却を補正）
+        // ★日跨ぎ対応：GASは日跨ぎ予約を開始日と終了日の両方で同じstartHour/durationで返してくる。
+        //   翌日視点では「0:00から(終了時刻)まで」のspilloverとして再表示する。
         function loadBookings() {
             const date = document.getElementById('selectedDate').value;
             const studio = document.getElementById('studioFilter').value;
-            
+            const prevDate = getPreviousDateStr(date);
+
             document.getElementById('calendarGrid').innerHTML = '<div class="loading">読み込み中...</div>';
-            
-            fetch(API_URL + '?action=list&date=' + date + '&studio=' + studio)
-                .then(res => res.json())
-                .then(data => {
-                    console.log('取得した予約データ:', data.bookings);
-                    
-                    bookings = (data.bookings || []).map(b => {
-                        const startSlot = Math.floor(b.startHour * 2);
-                        const durationSlots = Math.ceil(b.duration * 2);
-                        
-                        console.log('予約変換:', b.title, 'startHour=' + b.startHour, 'startSlot=' + startSlot, 'duration=' + b.duration, 'durationSlots=' + durationSlots);
-                        
-                        return {
-                            ...b,
-                            startSlot: startSlot,
-                            durationSlots: durationSlots
-                        };
-                    });
-                    
-                    console.log('変換後の予約データ:', bookings);
-                    renderCalendar();
-                })
-                .catch(err => {
-                    console.error('読み込みエラー:', err);
-                    document.getElementById('calendarGrid').innerHTML = '<div class="loading">エラーが発生しました</div>';
+
+            // 当日と前日を並列取得
+            Promise.all([
+                fetch(API_URL + '?action=list&date=' + date + '&studio=' + studio).then(r => r.json()),
+                fetch(API_URL + '?action=list&date=' + prevDate + '&studio=' + studio).then(r => r.json())
+            ])
+            .then(([todayData, prevData]) => {
+                const todayRaw = todayData.bookings || [];
+                const prevRaw = prevData.bookings || [];
+                console.log('取得した予約データ (当日):', todayRaw);
+                console.log('取得した予約データ (前日):', prevRaw);
+
+                // 前日のうち、日跨ぎ予約（startHour + duration > 24）を抽出
+                const prevCrossDay = prevRaw.filter(b => (b.startHour + b.duration) > 24);
+
+                // 当日のデータから、前日の日跨ぎ予約と一致するもの（GASによる重複返却）を除外
+                // 一致判定: studio + startHour + duration + title + description
+                const isSameBooking = (a, b) =>
+                    a.studio === b.studio &&
+                    a.startHour === b.startHour &&
+                    a.duration === b.duration &&
+                    (a.title || '') === (b.title || '') &&
+                    (a.description || '') === (b.description || '');
+                const todayFiltered = todayRaw.filter(b => !prevCrossDay.some(p => isSameBooking(p, b)));
+
+                // 前日の日跨ぎ予約を、当日の 0:00 開始の spillover として変換
+                const spillovers = prevCrossDay.map(b => ({
+                    ...b,
+                    startHour: 0,
+                    duration: (b.startHour + b.duration) - 24,
+                    _isSpillover: true
+                }));
+
+                const allBookings = [...spillovers, ...todayFiltered];
+
+                bookings = allBookings.map(b => {
+                    const startSlot = Math.floor(b.startHour * 2);
+                    const durationSlots = Math.ceil(b.duration * 2);
+
+                    console.log('予約変換:', b.title, 'startHour=' + b.startHour, 'startSlot=' + startSlot, 'duration=' + b.duration, 'durationSlots=' + durationSlots, b._isSpillover ? '[前日からのspillover]' : '');
+
+                    return {
+                        ...b,
+                        startSlot: startSlot,
+                        durationSlots: durationSlots
+                    };
                 });
+
+                console.log('変換後の予約データ:', bookings);
+                renderCalendar();
+            })
+            .catch(err => {
+                console.error('読み込みエラー:', err);
+                document.getElementById('calendarGrid').innerHTML = '<div class="loading">エラーが発生しました</div>';
+            });
         }
         
         // カレンダー描画
